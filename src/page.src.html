@@ -223,6 +223,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .work-body { padding: 1.15rem 1.25rem 1.35rem; display: grid; gap: 0.45rem; align-content: start; justify-items: start; }
 .work h3 { font-size: 1.2rem; }
 .work p { color: var(--muted); font-size: 0.96rem; line-height: 1.8; }
+.work-link { font-weight: 600; font-size: 0.96rem; margin-top: 0.2rem; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip {
@@ -501,43 +502,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
           <button class="chip" type="button" id="filter-video" data-filter="video" aria-pressed="false">الفيديو</button>
         </div>
 
-        <!-- نموذج فور يو: عدّل الوصف أو الرابط هنا -->
-        <article class="feature reveal" data-kind="menu">
-          <div class="thumb" aria-hidden="true"><div class="screen phone"><i class="g"></i><i></i><i></i><i></i><i class="g"></i></div></div>
-          <div class="feature-body">
-            <span class="tag tag-solid">نموذج جاهز</span>
-            <h3>منيو فور يو <span class="ltr" lang="en">4U</span></h3>
-            <p>نموذج عرض تجريبي أعددته لمطعم فور يو في الموصل لأعرض عليه الفكرة، وليس المنيو الرسمي للمطعم. الصور فيه توضيحية.</p>
-            <ul>
-              <li>ألوان مأخوذة من شعار المطعم</li>
-              <li>اختيار الطاولة والطلب من الهاتف</li>
-              <li>شاشة كاشير داخل المنيو نفسه</li>
-            </ul>
-            <a class="btn btn-line" href="https://qwdfegthikkcom-create.github.io/swalf-menu/4u-menu/" target="_blank" rel="noopener">افتح المنيو</a>
-          </div>
-        </article>
+        <!-- الأعمال كلها تُولَّد من works/works.json عند تشغيل build.py:
+             الجاهز (ready) يظهر هنا كبيراً، والقادم (soon) بطاقة صغيرة في القائمة تحته.
+             لإضافة عمل: tools/add_work.py (شوف CLAUDE.md). لا تكتب بطاقات الأعمال هنا باليد. -->
+<!--FEATURED-->
 
-        <!-- العمل الجاهز: عدّل الوصف هنا -->
-        <article class="feature reveal" data-kind="menu">
-          <div class="thumb" aria-hidden="true"><div class="screen phone"><i class="g"></i><i></i><i></i><i></i><i class="g"></i></div></div>
-          <div class="feature-body">
-            <span class="tag tag-solid">نموذج جاهز</span>
-            <h3>منيو ليالي الموصل</h3>
-            <p>منيو رقمي لمطعم افتراضي، وليس مطعماً قائماً. بنيته لأجرّب الفكرة كاملة بألوان عنابية وذهبية.</p>
-            <ul>
-              <li>اختيار رقم الطاولة بلمسة واحدة</li>
-              <li>تصفّح الأصناف حسب الفئات</li>
-              <li>تعديل مكوّنات الصنف قبل الطلب</li>
-              <li>سلة طلبات ثابتة أسفل الشاشة</li>
-              <li>لوحة كاشير تعرض الطلبات وحالتها</li>
-            </ul>
-            <!-- رابط النموذج: حين يتوفر رابط يعمل، احذف علامتي التعليق من السطر التالي وضع الرابط مكان PUT-LINK-HERE
-            <a class="btn btn-line" href="PUT-LINK-HERE" target="_blank" rel="noopener">افتح النموذج</a>
-            -->
-          </div>
-        </article>
-
-        <!-- الأعمال القادمة: حين يكتمل عمل، غيّر «قريباً» إلى «نموذج جاهز» وأضف رابطه داخل البطاقة. لإضافة بطاقة انسخ عنصر <li class="work"> كاملاً -->
         <ul class="works">
 <!--WORKS-->
         </ul>
