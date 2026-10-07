@@ -4,7 +4,7 @@
 قبل الكتابة يفحص قائمة الأعمال وروابط واتساب. إذا وجد خطأ يطبعه ويتوقف دون أن يلمس index.html،
 فيبقى الموقع المنشور سليماً كما هو.
 """
-import base64, html, json, pathlib, re, sys, urllib.parse
+import base64, html, json, pathlib, re, struct, sys, urllib.parse
 
 root = pathlib.Path(__file__).resolve().parent
 fonts_dir = root / 'fonts'
@@ -50,7 +50,14 @@ STATUSES = {'ready', 'soon'}
 LINK_TEXT = {'menu': 'افتح المنيو', 'site': 'افتح الموقع', 'video': 'شاهد الفيديو'}
 IMAGE_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png'}
 MAX_IMAGE = 400 * 1024
-FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'note', 'link', 'link_text', 'image', 'image_alt', 'featured'}
+# لقطات الشاشة الحقيقية تحت العمل الجاهز (الحقل screens): حتى 4 لقطات، كل واحدة webp أو jpg وأقل من 60KB
+SCREEN_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
+MAX_SCREENS = 4
+MAX_SCREEN = 60 * 1024
+# مجموع صور الأعمال المضمّنة في الصفحة (صورة كل عمل جاهز ولقطاته). إذا تجاوزه يتوقف البناء، حتى لا يثقل الموقع على الهاتف
+IMAGES_BUDGET = 300 * 1024
+FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'note', 'link', 'link_text', 'image', 'image_alt',
+          'featured', 'demo', 'screens'}
 BANNED = ['العقد']  # كلمات لا تُكتب في النصوص التعريفية (من قواعد CLAUDE.md)
 
 # زر واتساب تحت كل عمل جاهز: نص الزر، وما يُكتب في الرسالة بعد اسم العمل
@@ -80,6 +87,7 @@ def validate(works):
     if not isinstance(works, list) or not works:
         return ['works.json يجب أن يكون قائمة فيها عمل واحد على الأقل']
     seen = set()
+    used = {}  # ملف الصورة ← id العمل الذي يستخدمه
     for n, w in enumerate(works, 1):
         where = 'العمل رقم %d' % n
         if not isinstance(w, dict):
@@ -127,11 +135,76 @@ def validate(works):
                 errors.append('%s: image_alt مطلوب مع الصورة (وصف قصير لما فيها)' % where)
         if 'featured' in w and not isinstance(w['featured'], bool):
             errors.append('%s: featured يجب أن يكون true أو false' % where)
-        text = ' '.join(str(w.get(k, '')) for k in ('title', 'title_en', 'desc', 'note', 'link_text', 'image_alt')) + ' ' + ' '.join(pts)
+        if 'demo' in w and not isinstance(w['demo'], bool):
+            errors.append('%s: demo يجب أن يكون true أو false' % where)
+        # لقطات الشاشة الحقيقية: قائمة من 1 إلى 4، كل لقطة {"image": ..., "alt": ...}
+        screens = w.get('screens', [])
+        if 'screens' in w and not (isinstance(screens, list) and 1 <= len(screens) <= MAX_SCREENS):
+            errors.append('%s: screens قائمة من لقطة واحدة إلى %d لقطات (احذف الحقل إذا لا تريده)' % (where, MAX_SCREENS))
+            screens = screens if isinstance(screens, list) else []
+        alts = []
+        files = [w.get('image')]
+        for i, sc in enumerate(screens, 1):
+            at = '%s: اللقطة رقم %d في screens' % (where, i)
+            if not isinstance(sc, dict) or set(sc) != {'image', 'alt'}:
+                errors.append('%s: تُكتب هكذا {"image": "works/images/...", "alt": "وصف اللقطة"}' % at)
+                continue
+            files.append(sc['image'])
+            if isinstance(sc['alt'], str) and sc['alt'].strip():
+                alts.append(sc['alt'])
+            else:
+                errors.append('%s: alt مطلوب (وصف قصير لما في اللقطة)' % at)
+            p = root / sc['image'] if isinstance(sc['image'], str) and sc['image'] else None
+            if p is None or not p.is_file():
+                errors.append('%s: الصورة غير موجودة: %s' % (at, sc['image']))
+            elif p.suffix.lower() not in SCREEN_TYPES:
+                errors.append('%s: نوع الصورة غير مدعوم (webp أو jpg)' % at)
+            elif p.stat().st_size > MAX_SCREEN:
+                errors.append('%s: الصورة أكبر من %d KB، صغّرها' % (at, MAX_SCREEN // 1024))
+            elif not image_size(p):
+                errors.append('%s: تعذّرت قراءة أبعاد الصورة، احفظها من جديد webp أو jpg' % at)
+        # كل ملف صورة لعمل واحد فقط، حتى لا تغيّر صورةُ عملٍ صورةَ عمل آخر
+        for f in files:
+            if isinstance(f, str) and f:
+                if f in used:
+                    errors.append('%s: الصورة %s مستخدمة مرتين (أيضاً في %s)' % (where, f, used[f]))
+                used[f] = w.get('id', where)
+        text = ' '.join(str(w.get(k, '')) for k in ('title', 'title_en', 'desc', 'note', 'link_text', 'image_alt')) + ' ' + ' '.join(pts + alts)
         for word in BANNED:
             if word in text:
                 errors.append('%s: كلمة «%s» ممنوعة في النصوص التعريفية' % (where, word))
     return errors
+
+
+def image_size(p):
+    """عرض الصورة وارتفاعها من رأس الملف (webp أو jpg) بلا مكتبات إضافية، أو None إذا تعذّر."""
+    b = p.read_bytes()
+    if b[:4] == b'RIFF' and b[8:12] == b'WEBP':
+        chunk = b[12:16]
+        if chunk == b'VP8 ' and len(b) >= 30:
+            w, h = struct.unpack('<HH', b[26:30])
+            return w & 0x3fff, h & 0x3fff
+        if chunk == b'VP8L' and len(b) >= 25:
+            bits = int.from_bytes(b[21:25], 'little')
+            return (bits & 0x3fff) + 1, ((bits >> 14) & 0x3fff) + 1
+        if chunk == b'VP8X' and len(b) >= 30:
+            return int.from_bytes(b[24:27], 'little') + 1, int.from_bytes(b[27:30], 'little') + 1
+        return None
+    if b[:2] == b'\xff\xd8':
+        i = 2
+        while i + 9 < len(b):
+            if b[i] != 0xFF:
+                i += 1
+                continue
+            m = b[i + 1]
+            if m in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                h, w = struct.unpack('>HH', b[i + 5:i + 9])
+                return w, h
+            if m in (0xD8, 0x01, 0xFF) or 0xD0 <= m <= 0xD7:
+                i += 2 if m != 0xFF else 1
+                continue
+            i += 2 + struct.unpack('>H', b[i + 2:i + 4])[0]
+    return None
 
 
 LATIN = re.compile(r"[0-9]*[A-Za-z][A-Za-z0-9.&'+-]*(?:\s+[A-Za-z0-9][A-Za-z0-9.&'+-]*)*")
@@ -142,14 +215,46 @@ def t(s):
     return LATIN.sub(lambda m: '<span class="ltr" lang="en">%s</span>' % m.group(0), html.escape(s.strip(), quote=False))
 
 
+def data_uri(p, types):
+    return 'data:%s;base64,%s' % (types[p.suffix.lower()], base64.b64encode(p.read_bytes()).decode())
+
+
 def thumb(w):
     img = w.get('image')
     if not img:
         return '<div class="thumb" aria-hidden="true">%s</div>' % PLACEHOLDER[w['kind']]
-    p = root / img
-    data = base64.b64encode(p.read_bytes()).decode()
-    return ('<div class="thumb"><img src="data:%s;base64,%s" alt="%s" width="1200" height="750" loading="lazy" decoding="async"></div>'
-            % (IMAGE_TYPES[p.suffix.lower()], data, html.escape(w['image_alt'])))
+    # وسم «نموذج عرض» فوق كل صورة حقيقية، إلا إذا كان demo: false (لعميل حقيقي فقط)
+    badge = '<span class="thumb-badge">نموذج عرض</span>' if w.get('demo', True) else ''
+    # الصورة مضمّنة في الصفحة نفسها، فلا فائدة من loading="lazy"
+    return '<div class="thumb">%s<img src="%s" alt="%s" width="1200" height="750" decoding="async"></div>' % (
+        badge, data_uri(root / img, IMAGE_TYPES), html.escape(w['image_alt']))
+
+
+def tour(w, indent):
+    """لقطات الشاشة الحقيقية (الحقل screens): شريط يُسحب أفقياً بلا جافاسكربت، ويُمرَّر بالأسهم بعد التركيز عليه."""
+    screens = w.get('screens') or []
+    if not screens:
+        return []
+    one = len(screens) == 1
+    items = []
+    for sc in screens:
+        p = root / sc['image']
+        width, height = image_size(p)
+        items.append('%s    <li><img src="%s" alt="%s" width="%d" height="%d" decoding="async"></li>'
+                     % (indent, data_uri(p, SCREEN_TYPES), html.escape(sc['alt']), width, height))
+    # «من النموذج» لنموذج العرض، و«من العمل» لعميل حقيقي (demo: false)
+    demo = w.get('demo', True)
+    label = '%s حقيقية من %s' % ('لقطة' if one else 'لقطات', 'النموذج' if demo else 'العمل')
+    name = '%s من %s%s' % ('لقطة' if one else 'لقطات', 'نموذج ' if demo else '', plain_title(w))
+    return [
+        '%s<p class="tour-label">%s</p>' % (indent, label),
+        '%s<div class="tour" tabindex="0" role="region" aria-label="%s">' % (indent, html.escape(name)),
+        '%s  <ul>' % indent,
+    ] + items + ['%s  </ul>' % indent, '%s</div>' % indent]
+
+
+def demo_attr(w):
+    return '' if w.get('demo', True) else ' data-demo="false"'
 
 
 def title(w):
@@ -187,7 +292,7 @@ def tag(w):
 def feature(w):
     points = ''.join('\n              <li>%s</li>' % t(p) for p in w.get('points', []))
     lines = [
-        '        <article class="feature reveal" data-kind="%s" id="work-%s">' % (w['kind'], w['id']),
+        '        <article class="feature reveal" data-kind="%s" id="work-%s"%s>' % (w['kind'], w['id'], demo_attr(w)),
         '          %s' % thumb(w),
         '          <div class="feature-body">',
         '            %s' % tag(w),
@@ -203,12 +308,17 @@ def feature(w):
     buttons = [link(w, 'btn btn-line')] if w.get('link') else []
     buttons.append(wa_link(w, 'btn', text, 'مرحباً، رأيت نموذج «%s» في موقع واجهة، %s' % (plain_title(w), want)))
     lines.append('            <div class="feature-actions">%s\n            </div>' % ''.join('\n              ' + b for b in buttons))
-    return '\n'.join(lines + ['          </div>', '        </article>'])
+    lines.append('          </div>')
+    # اللقطات في شريط بعرض البطاقة كله تحت الصورة والنص، فلا تتمدد صورة العمل على الحاسوب
+    shots = tour(w, '            ')
+    if shots:
+        lines += ['          <div class="feature-tour">'] + shots + ['          </div>']
+    return '\n'.join(lines + ['        </article>'])
 
 
 def card(w):
     lines = [
-        '          <li class="work reveal" data-kind="%s" id="work-%s">' % (w['kind'], w['id']),
+        '          <li class="work reveal" data-kind="%s" id="work-%s"%s>' % (w['kind'], w['id'], demo_attr(w)),
         '            %s' % thumb(w),
         '            <div class="work-body">',
         '              %s' % tag(w),
@@ -217,6 +327,7 @@ def card(w):
     ]
     if w.get('note'):
         lines.append('              <p class="feature-note">%s</p>' % t(w['note']))
+    lines += tour(w, '              ')
     if w.get('link'):
         lines.append('              %s' % link(w, 'work-link'))
     return '\n'.join(lines + ['            </div>', '          </li>'])
@@ -253,6 +364,13 @@ def main():
     cards = [w for w in ready if not w.get('featured', True)]
     soon = [w for w in works if w['status'] == 'soon']
 
+    # حجم الصور المضمّنة: صورة كل عمل جاهز ولقطاته (القادم لا تظهر له صور)
+    shown = [w['image'] for w in ready if w.get('image')] + [sc['image'] for w in ready for sc in w.get('screens', [])]
+    total = sum((root / f).stat().st_size for f in shown)
+    if total > IMAGES_BUDGET:
+        sys.exit('صور الأعمال الجاهزة ولقطاتها مجموعها %d KB، والحد %d KB حتى يبقى الموقع خفيفاً على الهاتف.\n'
+                 'صغّر بعضها أو احذف لقطة (screens). لم يتغير index.html.' % (total // 1024, IMAGES_BUDGET // 1024))
+
     src = (root / 'src' / 'page.src.html').read_text(encoding='utf-8')
     for marker in ('/*FONTS*/', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):
         if src.count(marker) != 1:
@@ -284,7 +402,8 @@ def main():
     if "var value = '+%s'" % WA_NUMBER not in doc:
         sys.exit("السطر var value = '+%s' غير موجود في سكربت src/page.src.html (رقم زر «انسخ الرقم»). لم يتغير index.html." % WA_NUMBER)
     (root / 'index.html').write_text(doc, encoding='utf-8')
-    print('ok', len(doc.encode('utf-8')) // 1024, 'KB,', len(featured), 'featured +', len(cards), 'cards +', len(soon), 'soon')
+    print('ok', len(doc.encode('utf-8')) // 1024, 'KB,', len(featured), 'featured +', len(cards), 'cards +', len(soon), 'soon,',
+          'images %d/%d KB' % (total // 1024, IMAGES_BUDGET // 1024))
 
 
 if __name__ == '__main__':

@@ -35,14 +35,28 @@ const bad = msg => problems.push(msg);
       if (width !== 400) { await ctx.close(); continue; }
       try {
 
-      // صور الأعمال كلها تُحمَّل
-      // الصور lazy، فنطلب تحميلها الآن، وننتظر كل وحدة 5 ثوان كحد أقصى
+      // صور الأعمال كلها تُفتح (ومعها لقطات الشاشة)، وننتظر كل وحدة 5 ثوان كحد أقصى
       const imgs = await p.$$eval('#work img', ims => Promise.all(ims.map(i => {
-        i.loading = 'eager';
         const done = i.decode().then(() => [i.alt, i.naturalWidth], () => [i.alt, 0]);
         return Promise.race([done, new Promise(r => setTimeout(() => r([i.alt, 0]), 5000))]);
       })));
       imgs.filter(([, w]) => !w).forEach(([alt]) => bad(`صورة عمل لا تُفتح: ${alt}`));
+      imgs.filter(([alt]) => !alt.trim()).forEach(() => bad('صورة عمل بلا وصف (alt)'));
+      // فوق كل صورة عمل وسم «نموذج عرض» ظاهر، إلا لعمل فيه demo: false (data-demo="false")
+      const badges = await p.$$eval('#work .thumb img', ims => ims.map(i => {
+        const tag = i.parentElement.querySelector(':scope > .thumb-badge');
+        const box = tag && tag.getBoundingClientRect(), pic = i.parentElement.getBoundingClientRect();
+        return [i.alt, !!i.closest('[data-demo="false"]'), !!tag && tag.textContent.trim() === 'نموذج عرض'
+          && box.width > 0 && box.top >= pic.top && box.bottom <= pic.bottom];
+      }));
+      badges.filter(([, real, ok]) => !real && !ok).forEach(([alt]) => bad(`صورة عمل بلا وسم «نموذج عرض» ظاهر: ${alt}`));
+      // شريط لقطات الشاشة: يُوصل إليه بلوحة المفاتيح وله اسم، ولا يوسّع الصفحة (يُفحص في التمرير الأفقي أعلاه)
+      const tours = await p.$$eval('#work .tour', els => els.map(e => [e.getAttribute('aria-label') || '', e.getAttribute('tabindex'), e.querySelectorAll('img').length]));
+      for (const [label, tab, n] of tours) {
+        if (tab !== '0') bad(`شريط اللقطات «${label}» بلا tabindex="0" (لا يُوصل إليه بلوحة المفاتيح)`);
+        if (!label.trim()) bad('شريط لقطات بلا aria-label');
+        if (!n) bad(`شريط اللقطات «${label}» فارغ`);
+      }
 
       // ترتيب روابط القائمة العلوية يطابق ترتيب الأقسام في الصفحة
       const order = await p.evaluate(() => {

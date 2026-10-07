@@ -295,6 +295,36 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .screen { transition: transform 0.5s var(--ease); }
 .work:hover .screen, .feature:hover .screen { transform: translateY(-4px) scale(1.05); }
 .feature .thumb { aspect-ratio: auto; min-height: 15rem; height: 100%; border-bottom: 0; border-inline-end: 1px solid var(--gold-soft); }
+/* وسم «نموذج عرض» فوق كل صورة حقيقية لعمل. يضعه build.py، إلا لعمل فيه demo: false (لعميل حقيقي فقط).
+   z-index يبقيه فوق الصورة حين تكبر عند المرور عليها */
+.thumb { position: relative; }
+.thumb-badge {
+  position: absolute; top: 0.75rem; inset-inline-start: 0.75rem; z-index: 1;
+  font-size: 0.85rem; font-weight: 600; line-height: 1.7; white-space: nowrap;
+  background: var(--gold); color: var(--bg); border-radius: 999px; padding: 0.05rem 0.8rem;
+  box-shadow: 0 0.25rem 0.8rem rgba(0, 0, 0, 0.35);
+}
+/* لقطات الشاشة الحقيقية (الحقل screens في works.json): شريط يُسحب أفقياً بلا جافاسكربت.
+   في البطاقة الكبيرة يأخذ عرضها كله تحت الصورة والنص، فلا تتمدد صورة العمل على الحاسوب */
+.feature-tour {
+  grid-column: 1 / -1; min-width: 0; display: grid; gap: 0.6rem;
+  border-top: 1px solid var(--gold-soft); background: var(--bg-deep);
+  padding: 1.1rem clamp(1.4rem, 4vw, 2.25rem) 1.2rem;
+}
+.tour-label { color: var(--muted); font-size: 0.92rem; }
+.tour {
+  justify-self: stretch; min-width: 0; max-width: 100%;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+  padding-block-end: 0.5rem; scrollbar-width: thin; scrollbar-color: var(--gold-soft) transparent;
+}
+/* .tour ul تُلغي نقاط قائمة .feature ul وهامشها */
+.feature .tour ul, .tour ul { display: flex; gap: 0.75rem; list-style: none; padding: 0; }
+/* اللقطة التالية تظهر طرفها على الهاتف، فيُفهم أن الشريط يُسحب */
+.tour li { flex: 0 0 min(82%, 17rem); scroll-snap-align: start; }
+/* هامشان تلقائيان: اللقطات في الوسط إذا اتسع المكان لها كلها، ومن البداية إذا لم يتسع */
+.tour li:first-child { margin-inline-start: auto; }
+.tour li:last-child { margin-inline-end: auto; }
+.tour img { display: block; width: 100%; height: auto; border: 1px solid var(--gold-soft); border-radius: 12px; }
 .screen { border: 1.5px solid var(--gold); background: var(--bg-raised); display: grid; gap: 7%; padding: 5%; }
 .screen i { display: block; border-radius: 2px; background: var(--gold-soft); min-height: 0; }
 .screen i.g { background: var(--gold); }

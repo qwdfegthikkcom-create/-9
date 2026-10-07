@@ -22,17 +22,31 @@
   python3 tools/add_work.py --id cafe-menu --note "سطر توضيحي تحت النقاط"   # و--note "" يحذفه
   python3 tools/add_work.py --remove cafe-menu
 
+  # لقطات شاشة حقيقية تظهر كاملة تحت العمل (حتى 4، تحل محل اللقطات السابقة). كل --screen رابط أو صفحة تُصوَّر
+  # بحجم الهاتف، أو صورة جاهزة (png أو jpg أو webp). و« @ رقم» في آخره: للصورة يبدأ القص من هذا البعد عن أعلاها
+  # بالبكسل، وللرابط يمرّر الصفحة بهذا المقدار قبل التصوير. --screen-alt وصف كل لقطة بالترتيب نفسه
+  python3 tools/add_work.py --id cafe-menu --screen "https://example.github.io/cafe/ >> 5" \
+      --screen "menu-full.jpg @ 1640" --screen-alt "شاشة اختيار الطاولة" --screen-alt "قسم المشروبات"
+  python3 tools/add_work.py --id cafe-menu --no-screens   # يحذف اللقطات
+
+  # وسم «نموذج عرض» يظهر فوق صورة كل عمل. --no-demo يحذفه، ويُستخدم فقط لعميل حقيقي تعاقد فعلاً
+  python3 tools/add_work.py --id cafe-menu --no-demo      # و--demo يرجعه
+
 نفس id لعمل موجود = تعديله (مثلاً سطر «قريباً» يصير بطاقة «نموذج جاهز»)، وid جديد = إضافة.
 الجاهز (ready) يظهر بطاقة كبيرة مع زر واتساب «أريد منيو/موقعاً/فيديو مثل هذا»، و--featured no يجعله بطاقة صغيرة.
 القادم (soon) يظهر سطراً مختصراً في قائمة «قريباً في الأعمال» مع رابط «اسألني عن مثله»، بلا صورة.
 البيئة: PLAYWRIGHT و CHROMIUM لمسار playwright وكروميوم إذا لم يكونا مثبتين بشكل عادي.
 """
-import argparse, json, pathlib, shutil, subprocess, sys, tempfile
+import argparse, json, pathlib, re, shutil, subprocess, sys, tempfile, textwrap
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKS = ROOT / 'works' / 'works.json'
 IMAGES = ROOT / 'works' / 'images'
 TOOLS = ROOT / 'tools'
+# لقطات الشاشة (screens): بعرض 540 وارتفاع شاشة هاتف (نسبة 400×820)، وأقل من 60KB لكل لقطة كما يشترط build.py
+SCREEN_W, SCREEN_H = 540, 1107
+MAX_SCREEN = 60 * 1024
+PICTURE = ('.png', '.jpg', '.jpeg', '.webp')
 
 
 def run(cmd):
@@ -43,7 +57,7 @@ def run(cmd):
     return out
 
 
-def shoot(spec, out, desktop):
+def shoot(spec, out, desktop, scroll=0):
     """spec: «رابط أو مسار» واختيارياً « >> نص للضغط >> نص آخر»."""
     parts = [x.strip() for x in spec.split('>>')]
     cmd = ['node', str(TOOLS / 'shoot.cjs'), 'page', parts[0], str(out)]
@@ -51,7 +65,65 @@ def shoot(spec, out, desktop):
         cmd.append('--desktop')
     for c in parts[1:]:
         cmd += ['--click', c]
+    if scroll:
+        cmd += ['--scroll', str(scroll)]
     run(cmd)
+
+
+def make_screens(args, w, tmp):
+    """يصنع لقطات الشاشة works/images/{id}-1.webp ... من --screen، ويرجع قائمة screens الجديدة."""
+    from PIL import Image  # pip install pillow
+    if len(args.screen) > 4:
+        raise RuntimeError('اللقطات حتى 4 فقط')
+    alts = args.screen_alt or []
+    if len(alts) > len(args.screen):
+        raise RuntimeError('عدد --screen-alt أكثر من عدد --screen')
+    screens = []
+    for n, spec in enumerate(args.screen, 1):
+        m = re.search(r'\s@\s*(\d+)\s*$', spec)
+        top = int(m.group(1)) if m else 0
+        spec = spec[:m.start()] if m else spec
+        src = spec.split('>>')[0].strip()
+        if src.lower().endswith(PICTURE) and '>>' not in spec:
+            shot = pathlib.Path(src).resolve()
+            if not shot.is_file():
+                raise RuntimeError('اللقطة غير موجودة: %s' % shot)
+        else:
+            # صفحة تُصوَّر بحجم الهاتف، بعد التمرير بمقدار @ إن وُجد
+            shot = tmp / ('screen%d.png' % n)
+            shoot(spec, shot, desktop=False, scroll=top)
+            top = 0
+        im = Image.open(shot).convert('RGB')
+        if top >= im.height:
+            raise RuntimeError('@ %d أكبر من ارتفاع الصورة (%d): %s' % (top, im.height, src))
+        # قص بنسبة شاشة الهاتف من الموضع المطلوب، ثم تصغير إلى عرض 540
+        im = im.crop((0, top, im.width, min(im.height, top + round(im.width * SCREEN_H / SCREEN_W))))
+        im = im.resize((SCREEN_W, round(im.height * SCREEN_W / im.width)), Image.LANCZOS)
+        rel = 'works/images/%s-%d.webp' % (w['id'], n)
+        for q in (70, 60, 50, 40):
+            im.save(ROOT / rel, 'WEBP', quality=q, method=6)
+            if (ROOT / rel).stat().st_size <= MAX_SCREEN:
+                break
+        alt = alts[n - 1] if n <= len(alts) else 'لقطة شاشة %d من %s' % (n, w['title'])
+        screens.append({'image': rel, 'alt': alt})
+    return screens
+
+
+def dump(works):
+    """works.json بالشكل نفسه المكتوب باليد: العمل القصير بلا قوائم في سطر واحد، والباقي حقلاً في كل سطر."""
+    rows = []
+    for w in works:
+        one = '{ %s }' % json.dumps(w, ensure_ascii=False)[1:-1]
+        if not any(isinstance(v, (list, dict)) for v in w.values()) and len(one) <= 240:
+            rows.append('  ' + one)
+        else:
+            rows.append(textwrap.indent(json.dumps(w, ensure_ascii=False, indent=2), '  '))
+    return '[\n' + ',\n'.join(rows) + '\n]\n'
+
+
+def files_of(w):
+    """ملفات الصور التي يستخدمها العمل: صورته ولقطاته."""
+    return {f for f in [w.get('image')] + [sc.get('image') for sc in w.get('screens', [])] if f}
 
 
 def make_image(args, wid, tmp):
@@ -98,6 +170,13 @@ def main():
     ap.add_argument('--raw-image', action='store_true', help='استخدم الصورة كما هي بلا إطار الهوية')
     ap.add_argument('--alt', help='وصف الصورة لقارئات الشاشة')
     ap.add_argument('--featured', choices=['yes', 'no'], help='للجاهز فقط: بطاقة كبيرة أو صغيرة (افتراضياً كبيرة). القادم سطر في قائمة «قريباً» دائماً')
+    ap.add_argument('--screen', action='append', default=[],
+                    help='لقطة شاشة حقيقية تظهر كاملة تحت العمل الجاهز (تتكرر حتى 4، وتحل محل السابقة): '
+                         'رابط أو صفحة تُصوَّر بحجم الهاتف، أو صورة png/jpg/webp. « @ رقم» في آخره يبدأ من هذا البعد عن الأعلى')
+    ap.add_argument('--screen-alt', action='append', help='وصف كل لقطة لقارئات الشاشة، بترتيب --screen')
+    ap.add_argument('--no-screens', action='store_true', help='احذف لقطات الشاشة من العمل')
+    ap.add_argument('--demo', action=argparse.BooleanOptionalAction,
+                    help='وسم «نموذج عرض» فوق صورة العمل (افتراضياً موجود). --no-demo لعميل حقيقي تعاقد فعلاً فقط')
     ap.add_argument('--first', action='store_true', help='ضعه أول القائمة')
     args = ap.parse_args()
 
@@ -107,6 +186,7 @@ def main():
     shutil.copytree(ROOT / 'works', backup / 'works')
     shutil.copy2(ROOT / 'index.html', backup / 'index.html')
 
+    old_files = set().union(*(files_of(x) for x in works))
     try:
         if args.remove:
             before = len(works)
@@ -153,13 +233,27 @@ def main():
                 w['image_alt'] = args.alt or w.get('image_alt') or ('لقطة من %s' % w['title'])
             elif args.alt:
                 w['image_alt'] = args.alt
+            if args.screen and args.no_screens:
+                raise RuntimeError('اختر --screen أو --no-screens، لا الاثنين')
+            if args.screen:
+                with tempfile.TemporaryDirectory() as tmp:
+                    w['screens'] = make_screens(args, w, pathlib.Path(tmp))
+            elif args.screen_alt:
+                raise RuntimeError('--screen-alt يأتي مع --screen')
+            elif args.no_screens:
+                w.pop('screens', None)
+            if args.demo is True:
+                w.pop('demo', None)  # الافتراضي: يظهر وسم «نموذج عرض»
+            elif args.demo is False:
+                w['demo'] = False
 
-        WORKS.write_text(json.dumps(works, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        WORKS.write_text(dump(works), encoding='utf-8')
         print(run([sys.executable, 'build.py']))
         print(run(['node', str(TOOLS / 'check.cjs')]))
-        if args.remove:
-            stale = IMAGES / ('%s.webp' % args.remove)
-            if stale.exists():
+        # صور لم يعد يستخدمها أي عمل (عمل محذوف، أو لقطات حلّت محلها أخرى أو حُذفت)
+        for f in old_files - set().union(*(files_of(x) for x in works)):
+            stale = ROOT / f
+            if stale.parent == IMAGES and stale.exists():
                 stale.unlink()
         print('%s: %s. راجع index.html ثم ارفع التغييرات (git add -A && git commit && git push).' % (action, args.remove or args.id))
     except Exception as e:
