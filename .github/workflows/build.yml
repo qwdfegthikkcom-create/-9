@@ -30,6 +30,10 @@ jobs:
         with:
           node-version: '22'
 
+      # fontTools وbrotli: البناء يصغّر الخطوط المضمّنة بهما، ويتوقف إذا لم يجدهما
+      - name: Install fontTools
+        run: python3 -m pip install fonttools==4.66.1 brotli==1.2.0
+
       - name: Install Playwright
         run: |
           npm install --no-save playwright@1.56.1

@@ -36,6 +36,7 @@
 الجاهز (ready) يظهر بطاقة كبيرة مع زر واتساب «أريد منيو/موقعاً/فيديو مثل هذا»، و--featured no يجعله بطاقة صغيرة.
 القادم (soon) يظهر سطراً مختصراً في قائمة «قريباً في الأعمال» مع رابط «اسألني عن مثله»، بلا صورة.
 البيئة: PLAYWRIGHT و CHROMIUM لمسار playwright وكروميوم إذا لم يكونا مثبتين بشكل عادي.
+يحتاج Pillow، وfontTools وbrotli للبناء: pip install pillow fonttools brotli
 """
 import argparse, json, pathlib, re, shutil, subprocess, sys, tempfile, textwrap
 

@@ -1,16 +1,29 @@
-"""يبني index.html من src/page.src.html: يضمّن الخطوط، ويولّد بطاقات الأعمال من works/works.json.
-التشغيل: python3 build.py
+"""يبني index.html من src/page.src.html: يضمّن الخطوط (بعد تصغيرها إلى الحروف المستعملة فقط) والأيقونة،
+ويولّد بطاقات الأعمال من works/works.json.
+التشغيل: python3 build.py   (يحتاج: pip install fonttools brotli)
 
 قبل الكتابة يفحص قائمة الأعمال وروابط واتساب. إذا وجد خطأ يطبعه ويتوقف دون أن يلمس index.html،
 فيبقى الموقع المنشور سليماً كما هو.
 """
-import base64, html, json, pathlib, re, struct, sys, urllib.parse
+import base64, html, io, json, pathlib, re, struct, sys, urllib.parse
+
+# تصغير الخطوط يحتاج fontTools وbrotli. بدونهما يتوقف البناء ولا يلمس index.html
+try:
+    import brotli  # noqa: F401  (يستخدمه fontTools لكتابة woff2)
+    from fontTools import subset as font_subset
+except ImportError:
+    sys.exit('البناء يحتاج مكتبتي fontTools وbrotli لتصغير الخطوط المضمّنة. ثبّتهما بالأمر:\n'
+             '  pip install fonttools brotli\n'
+             'ثم أعد python3 build.py. لم يتغير index.html.')
 
 root = pathlib.Path(__file__).resolve().parent
 fonts_dir = root / 'fonts'
 
 # ---------- الخطوط ----------
+# الخطوط الأصلية في fonts/ تبقى كاملة. البناء يأخذ منها الحروف المستعملة في الصفحة فقط (مع الأساسيات أدناه)
+# ويضمّنها، فيصغر الموقع كثيراً. إذا كتبت نصاً جديداً في src أو works.json تدخل حروفه تلقائياً في البناء التالي.
 def faces(css_path, files_dir, keep=('arabic', 'latin')):
+    """قواعد @font-face من ملف css، كل واحدة مع مسار ملف الخط الذي تشير إليه."""
     css = css_path.read_text(encoding='utf-8')
     out = []
     for block in re.findall(r'@font-face\s*\{[^}]*\}', css):
@@ -20,10 +33,9 @@ def faces(css_path, files_dir, keep=('arabic', 'latin')):
         name = m.group(1)
         if not any(re.search(r'-%s-(wght|\d+)-normal\.woff2$' % k, name) for k in keep):
             continue
-        data = base64.b64encode((files_dir / name).read_bytes()).decode()
-        block = re.sub(r'src:[^;]*;', "src: url(data:font/woff2;base64,%s) format('woff2');" % data, block, flags=re.S)
-        out.append(block)
+        out.append((block, files_dir / name))
     return out
+
 
 fonts = []
 em = fonts_dir / 'el-messiri'
@@ -32,6 +44,101 @@ ib = fonts_dir / 'ibm-plex-sans-arabic'
 for w in ('400', '600'):
     fonts += faces(ib / (w + '.css'), ib / 'files')
 assert len(fonts) == 6, len(fonts)
+
+# حروف تبقى في الخطوط دائماً، حتى لو لم تظهر في نص الصفحة: الإنجليزية الأساسية والأرقام،
+# وعلامات الترقيم العربية والأرقام العربية (خطوات «طريقة العمل» تُرقَّم بها من CSS)، والتشكيل، وعلامات الاتجاه
+ALWAYS = (list(range(0x20, 0x7F)) + [0xA0, 0xAB, 0xB7, 0xBB]
+          + [0x060C, 0x061B, 0x061F, 0x0640, 0x06D4] + list(range(0x064B, 0x0653))
+          + list(range(0x0660, 0x066E)) + list(range(0x06F0, 0x06FA))
+          + list(range(0x200C, 0x2028)))
+
+
+def used_chars(page):
+    """كل الحروف التي قد تظهر في الصفحة: النص، وقيم content في CSS، ونصوص السكربت، مع فك &...; و\\XXXX و\\uXXXX."""
+    chars = set(html.unescape(page))
+    escapes = re.findall(r'\\u([0-9a-fA-F]{4})|\\u\{([0-9a-fA-F]{1,6})\}|\\([0-9a-fA-F]{1,6})', page)  # JS ثم CSS
+    chars |= {chr(int(h, 16)) for e in escapes for h in e if h and int(h, 16) <= 0x10FFFF}
+    return {ord(c) for c in chars if c.isprintable() or c in '\u200c\u200d\u200e\u200f'} | set(ALWAYS)
+
+
+def subset(path, unicodes):
+    """ملف الخط بالحروف المطلوبة فقط، woff2. يحتفظ بكل ميزات تشكيل الحروف العربية (layout_features='*').
+    النتيجة ثابتة: نفس الحروف تعطي نفس الملف بايتاً ببايت، فلا يتغير index.html بلا سبب."""
+    opts = font_subset.Options()
+    opts.layout_features = ['*']
+    opts.flavor = 'woff2'
+    font = font_subset.load_font(str(path), opts)
+    font.recalcTimestamp = False  # لا يكتب وقت البناء داخل الخط
+    sub = font_subset.Subsetter(opts)
+    sub.populate(unicodes=sorted(unicodes))
+    sub.subset(font)
+    out = io.BytesIO()
+    font_subset.save_font(font, out, opts)
+    return out.getvalue()
+
+
+def font_css(unicodes):
+    """قواعد @font-face الست، وكل خط مصغّر ومضمّن داخلها. يرجع النص وحجم الخطوط قبل التصغير وبعده."""
+    blocks, before, after = [], 0, 0
+    for block, path in fonts:
+        data = subset(path, unicodes)
+        before += path.stat().st_size
+        after += len(data)
+        src = "src: url(data:font/woff2;base64,%s) format('woff2');" % base64.b64encode(data).decode()
+        blocks.append(re.sub(r'src:[^;]*;', lambda _: src, block, flags=re.S))
+    return '\n'.join(blocks), before, after
+
+
+# ---------- رأس الصفحة: الأيقونة ولون شريط المتصفح ونص المشاركة ----------
+# الاسم والوصف كما يظهران في نتائج البحث وعند مشاركة رابط الموقع على واتساب وفيسبوك
+SITE_NAME = 'واجهة ✦ Wajha Studio'
+DESCRIPTION = ('واجهة Wajha Studio: منيوهات رقمية للمطاعم، ومواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، '
+               'وفيديوهات ترويجية. عبدالله حمزه علي، الموصل.')
+# رابط الموقع المنشور، ينتهي بـ / مثل https://example.github.io/site/ . اتركه فارغاً حتى يتأكد الرابط.
+# حين يُكتب يضيف البناء صورة المشاركة og.jpg (تصنعها tools/og.cjs) والرابط الأساسي للصفحة.
+SITE_URL = ''
+# أيقونة الموقع من مجلد brand/ (تصنعها tools/make_icons.py)
+ICONS_DIR = root / 'brand'
+
+
+def head_meta(src):
+    """وسوم <head> بعد العنوان. لون شريط المتصفح يُقرأ من --bg في :root، فيبقى مطابقاً للخلفية."""
+    m = re.search(r'--bg:\s*(#[0-9a-fA-F]{3,8})\s*;', src)
+    if not m:
+        sys.exit('لم أجد --bg في :root داخل src/page.src.html (لون شريط المتصفح). لم يتغير index.html.')
+    for f in ('icon.svg', 'icon-32.png', 'icon-180.png'):
+        if not (ICONS_DIR / f).is_file():
+            sys.exit('الأيقونة brand/%s غير موجودة. شغّل python3 tools/make_icons.py. لم يتغير index.html.' % f)
+    svg = 'data:image/svg+xml,' + urllib.parse.quote((ICONS_DIR / 'icon.svg').read_text(encoding='utf-8').strip(), safe=' /:=,.-')
+    png = lambda f: 'data:image/png;base64,' + base64.b64encode((ICONS_DIR / f).read_bytes()).decode()
+    a = lambda s: html.escape(s, quote=True)
+    lines = [
+        '<meta name="description" content="%s">' % a(DESCRIPTION),
+        '<meta name="theme-color" content="%s">' % m.group(1),
+        '<meta name="color-scheme" content="dark">',
+        '<link rel="icon" type="image/svg+xml" href="%s">' % a(svg),
+        '<link rel="icon" type="image/png" sizes="32x32" href="%s">' % png('icon-32.png'),
+        '<link rel="apple-touch-icon" href="%s">' % png('icon-180.png'),
+        '<meta property="og:type" content="website">',
+        '<meta property="og:locale" content="ar_IQ">',
+        '<meta property="og:title" content="%s">' % a(SITE_NAME),
+        '<meta property="og:description" content="%s">' % a(DESCRIPTION),
+    ]
+    if SITE_URL:
+        if not re.fullmatch(r'https://[^\s"<>?#]+/', SITE_URL):
+            sys.exit('SITE_URL يجب أن يبدأ بـ https:// وينتهي بـ / وبلا مسافات. لم يتغير index.html.')
+        if not (root / 'og.jpg').is_file():
+            sys.exit('og.jpg غير موجودة بجانب index.html. شغّل node tools/og.cjs. لم يتغير index.html.')
+        lines += [
+            '<link rel="canonical" href="%s">' % a(SITE_URL),
+            '<meta property="og:url" content="%s">' % a(SITE_URL),
+            '<meta property="og:image" content="%s">' % a(SITE_URL + 'og.jpg?v=1'),
+            '<meta property="og:image:width" content="1200">',
+            '<meta property="og:image:height" content="630">',
+        ]
+    # بطاقة كبيرة بالصورة حين توجد صورة مشاركة، وإلا بطاقة نصية
+    lines.append('<meta name="twitter:card" content="%s">' % ('summary_large_image' if SITE_URL else 'summary'))
+    return '\n'.join(lines)
 
 # ---------- واتساب ----------
 # رقم واتساب العمل بلا + ولا مسافات. تُبنى منه روابط الأعمال («أريد منيو مثل هذا» و«اسألني عن مثله»).
@@ -375,9 +482,8 @@ def main():
     for marker in ('/*FONTS*/', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):
         if src.count(marker) != 1:
             sys.exit('العلامة %s يجب أن تظهر مرة واحدة بالضبط في src/page.src.html. لم يتغير index.html.' % marker)
-    # قائمة فارغة تُترك بلا مسافات، حتى يخفيها CSS (:empty)
-    src = (src.replace('/*FONTS*/', '\n'.join(fonts))
-              .replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
+    # قائمة فارغة تُترك بلا مسافات، حتى يخفيها CSS (:empty). الخطوط تُضاف في الآخر، بعد معرفة الحروف المستعملة
+    src = (src.replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
               .replace('<!--WORKS-->', ''.join('\n' + card(w) for w in cards) + ('\n        ' if cards else ''))
               .replace('<!--SOON-->', ''.join('\n' + row(w) for w in soon) + ('\n          ' if soon else '')))
 
@@ -389,11 +495,11 @@ def main():
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 %s
-<meta name="description" content="واجهة Wajha Studio: منيوهات رقمية للمطاعم، ومواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، وفيديوهات ترويجية. عبدالله حمزه علي، الموصل.">%s
+%s%s
 </head>
 <body>%s</body>
 </html>
-''' % (src[:t_end], src[t_end:s_end], src[s_end:])
+''' % (src[:t_end], head_meta(src), src[t_end:s_end], src[s_end:])
     # كل روابط واتساب في الصفحة يجب أن تكون بالرقم نفسه
     others = sorted(set(n for n in re.findall(r'wa\.me/([^?"\'\s<>#]*)', doc) if n != WA_NUMBER))
     if others:
@@ -401,8 +507,11 @@ def main():
                  % (WA_NUMBER, '، '.join(others)))
     if "var value = '+%s'" % WA_NUMBER not in doc:
         sys.exit("السطر var value = '+%s' غير موجود في سكربت src/page.src.html (رقم زر «انسخ الرقم»). لم يتغير index.html." % WA_NUMBER)
+    # الخطوط: الحروف المستعملة في الصفحة كلها (والأساسيات في ALWAYS) فقط
+    css, before, after = font_css(used_chars(doc))
+    doc = doc.replace('/*FONTS*/', css)
     (root / 'index.html').write_text(doc, encoding='utf-8')
-    print('ok', len(doc.encode('utf-8')) // 1024, 'KB,', len(featured), 'featured +', len(cards), 'cards +', len(soon), 'soon,',
+    print('ok', len(doc.encode('utf-8')) // 1024, 'KB,', 'fonts %d->%d KB,' % (before // 1024, after // 1024), len(featured), 'featured +', len(cards), 'cards +', len(soon), 'soon,',
           'images %d/%d KB' % (total // 1024, IMAGES_BUDGET // 1024))
 
 

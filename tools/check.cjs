@@ -35,6 +35,25 @@ const bad = msg => problems.push(msg);
       if (width !== 400) { await ctx.close(); continue; }
       try {
 
+      // رأس الصفحة: أيقونة الموقع، ولون شريط المتصفح مطابق لـ --bg، وصورة المشاركة (إن وُجدت) برابط https كامل
+      const head = await p.evaluate(() => ({
+        icon: !!document.querySelector('link[rel~="icon"][href]'),
+        theme: (document.querySelector('meta[name="theme-color"]') || {}).content || '',
+        bg: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
+        ogImage: [...document.querySelectorAll('meta[property="og:image"]')].map(m => m.content),
+      }));
+      if (!head.icon) bad('لا توجد أيقونة للموقع (link rel="icon")');
+      const icons = await p.evaluate(() => Promise.all([...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l =>
+        new Promise(res => { const i = new Image(); i.onload = () => res([l.rel, i.naturalWidth]); i.onerror = () => res([l.rel, 0]); i.src = l.href; }))));
+      icons.filter(([, w]) => !w).forEach(([rel]) => bad(`أيقونة (${rel}) لا تُفتح`));
+      if (!head.theme) bad('لا يوجد meta name="theme-color"');
+      else if (head.theme.toLowerCase() !== head.bg.toLowerCase()) bad(`theme-color (${head.theme}) لا يطابق --bg (${head.bg})`);
+      head.ogImage.filter(u => !/^https:\/\/[^\s/]+\//.test(u)).forEach(u => bad(`og:image ليس رابط https كاملاً: ${u}`));
+      // الخطوط المضمّنة (المصغّرة عند البناء) كلها تُفتح
+      await p.evaluate(() => document.fonts.ready);
+      const fontErrors = await p.evaluate(() => [...document.fonts].filter(f => f.status === 'error').map(f => `${f.family} ${f.weight}`));
+      fontErrors.forEach(f => bad(`خط مضمّن لا يُفتح: ${f}`));
+
       // صور الأعمال كلها تُفتح (ومعها لقطات الشاشة)، وننتظر كل وحدة 5 ثوان كحد أقصى
       const imgs = await p.$$eval('#work img', ims => Promise.all(ims.map(i => {
         const done = i.decode().then(() => [i.alt, i.naturalWidth], () => [i.alt, 0]);
