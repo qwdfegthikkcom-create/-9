@@ -19,6 +19,7 @@
 
   # تعديل حقل في عمل موجود (يحتفظ بالباقي) / حذف عمل
   python3 tools/add_work.py --id cafe-menu --status ready
+  python3 tools/add_work.py --id cafe-menu --note "سطر توضيحي تحت النقاط"   # و--note "" يحذفه
   python3 tools/add_work.py --remove cafe-menu
 
 نفس id لعمل موجود = تعديله (مثلاً بطاقة «قريباً» تصير «نموذج جاهز»)، وid جديد = إضافة.
@@ -87,6 +88,7 @@ def main():
     ap.add_argument('--title-en', help='جزء إنجليزي بعد العنوان، مثل 4U')
     ap.add_argument('--desc')
     ap.add_argument('--point', action='append', help='نقطة مميزة (تتكرر)')
+    ap.add_argument('--note', help='سطر توضيحي يظهر تحت النقاط، و"" يحذفه')
     ap.add_argument('--link', help='رابط العمل، يبدأ بـ https://')
     ap.add_argument('--link-text', help='نص زر الرابط (افتراضياً: افتح المنيو / افتح الموقع / شاهد الفيديو)')
     ap.add_argument('--shot', action='append', default=[], help='صفحة تُصوَّر: رابط أو مسار، و«>> نص» للضغط قبل التصوير (مرة أو مرتين)')
@@ -133,6 +135,11 @@ def main():
                     w[k] = v
             if args.point:
                 w['points'] = args.point
+            if args.note is not None:
+                if args.note.strip():
+                    w['note'] = args.note
+                else:
+                    w.pop('note', None)
             if 'status' not in w:
                 w['status'] = 'ready' if (w.get('link') or args.shot or args.image) else 'soon'
             if args.featured:

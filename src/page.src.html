@@ -1,6 +1,6 @@
-<title>واجهة ✦ Wajha Studio</title>
+<title>واجهة ✦ Wajha Studio | منيوهات رقمية ومواقع · الموصل</title>
 <style>
-/* التخطيط: واجهة مقوّسة تحمل الاسم، يليها رواق من الأقواس لأنواع المحلات، ثم أقسام متتالية ببطاقات على شبكة */
+/* التخطيط: واجهة مقوّسة تحمل الاسم، يليها رواق من الأقواس لأنواع الأنشطة، ثم أقسام متتالية ببطاقات على شبكة */
 :root {
   color-scheme: dark;
 
@@ -154,7 +154,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .arch-letter { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: clamp(6rem, 20vw, 9.5rem); line-height: 1.1; }
 .arch-word { font-family: var(--font-display); color: var(--muted); font-size: 1rem; }
 
-/* ---------- رواق أنواع المحلات ---------- */
+/* ---------- رواق الأنشطة ---------- */
 .arcade-band { border-top: 1px solid var(--gold-soft); background: var(--bg-deep); }
 .arcade-band .wrap { padding-block: clamp(1.75rem, 4vw, 2.5rem); display: grid; gap: 1.25rem; }
 .arcade-label { color: var(--muted); font-size: 0.98rem; text-align: center; }
@@ -223,6 +223,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .feature h3 { font-size: 1.75rem; }
 .feature ul { list-style: disc; padding-inline-start: 1.2rem; color: var(--muted); display: grid; gap: 0.15rem; }
 .feature ul ::marker { color: var(--gold); }
+/* سطر توضيحي تحت النقاط (الحقل note في works.json) */
+.feature-body .feature-note, .work-body .feature-note {
+  color: var(--muted); font-size: 0.92rem; line-height: 1.8;
+  border-inline-start: 2px solid var(--gold-soft); padding-inline-start: 0.75rem;
+}
 .works { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr)); gap: 1.1rem; }
 .work {
   min-width: 0; display: grid; grid-template-rows: auto 1fr;
@@ -246,7 +251,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* backwards لا both: بعد انتهاء الحركة يرجع رفع البطاقة عند المرور عليها */
 .pop { animation: rise 0.5s var(--ease) backwards; }
 
-/* مصغّرات توضيحية مرسومة بالخطوط، وليست صوراً لأعمال حقيقية */
+/* المصغّرات: صورة العمل إن وُجدت، وإلا رسم توضيحي بالخطوط (وليس صورة لعمل حقيقي) */
 .thumb {
   aspect-ratio: 16 / 10; max-width: 100%;
   background: linear-gradient(160deg, var(--bg), var(--bg-deep));
@@ -254,7 +259,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   display: grid; place-items: center;
 }
 .thumb { overflow: hidden; }
-/* لوضع صورة حقيقية: استبدل <div class="screen ..."> داخل .thumb بوسم <img src="..." alt="وصف الصورة"> */
+/* الصورة الحقيقية يضعها build.py من الحقل image في works/works.json، فأضفها بـ tools/add_work.py لا هنا */
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.7s var(--ease); }
 .work:hover .thumb img, .feature:hover .thumb img { transform: scale(1.06); }
 .screen { transition: transform 0.5s var(--ease); }
@@ -273,7 +278,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .screen.video { width: 58%; aspect-ratio: 16 / 9; border-radius: 5px; place-items: center; }
 .screen.video i { width: 18%; aspect-ratio: 1; background: var(--gold); clip-path: polygon(15% 0, 100% 50%, 15% 100%); border-radius: 0; }
 
-/* كيف نعمل */
+/* طريقة العمل */
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr)); gap: 1.5rem 1.25rem; counter-reset: step; }
 .steps li { min-width: 0; display: grid; gap: 0.4rem; align-content: start; padding-top: 1.1rem; border-top: 2px solid var(--gold-soft); counter-increment: step; }
 .steps li::before {
@@ -436,10 +441,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       </div>
     </section>
 
-    <!-- رواق أنواع المحلات: عدّل الكلمات أو احذف عنصراً. data-filter يحدد نوع الأعمال التي تظهر عند الضغط: menu أو site أو video -->
+    <!-- رواق الأنشطة: عدّل الكلمات أو احذف عنصراً. data-filter يحدد نوع الأعمال التي تظهر عند الضغط: menu أو site أو video -->
     <div class="arcade-band">
       <div class="wrap">
-        <p class="arcade-label" id="arcade-label">اختر نشاطك لترى ما يناسبه من الأعمال</p>
+        <p class="arcade-label" id="arcade-label">اختر نشاطك لترى نوع الأعمال المناسب له</p>
         <ul class="arcade" aria-labelledby="arcade-label">
           <li><a href="#work" data-filter="menu">المطاعم</a></li>
           <li><a href="#work" data-filter="menu">الكافيهات</a></li>
@@ -465,7 +470,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
           <!-- نقاط التميّز: عدّلها بما يطابق طريقتك -->
           <ul class="points reveal">
             <li><h3>الهاتف أولاً</h3><p>تُصمَّم كل صفحة لشاشة الهاتف أولاً، ثم للحاسوب.</p></li>
-            <li><h3>بهوية محلّك</h3><p>الألوان والشعار والأسلوب من هويتك أنت، لا قالب واحد للجميع.</p></li>
+            <li><h3>بهوية نشاطك</h3><p>الألوان والشعار والأسلوب من هويتك أنت، لا قالب واحد للجميع.</p></li>
             <li><h3>عربية من الأساس</h3><p>اتجاه من اليمين إلى اليسار وخط عربي واضح ومقروء.</p></li>
             <li><h3>سهلة على الزبون</h3><p>رابط يُفتح مباشرة في المتصفح، بلا تطبيق ولا تسجيل.</p></li>
           </ul>
@@ -477,7 +482,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       <div class="wrap">
         <div class="head reveal">
           <h2 id="services-title">الخدمات</h2>
-          <p>خمس خدمات، وكل واحدة تُبنى على هوية المحل نفسه.</p>
+          <p>كل خدمة تُبنى على هوية نشاطك نفسه.</p>
         </div>
         <!-- الخدمات: كل خدمة داخل <li class="card">، احذف العنصر كاملاً لإزالتها -->
         <ul class="cards">
@@ -485,11 +490,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
             <span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 8h4M10 11.5h4M10 15h2.5"/></svg></span>
             <h3>منيو رقمي للمطاعم</h3>
             <p>منيو يفتحه الزبون من هاتفه بمسح رمز <span class="ltr" lang="en">QR</span> على الطاولة، مرتّب حسب الفئات وبألوان المطعم وهويته.</p>
-          </li>
-          <li class="card reveal">
-            <span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>
-            <h3>نظام طلبات وكاشير <span class="tag">قريباً</span></h3>
-            <p>يرسل الزبون طلبه من المنيو مباشرة، ويتابعه الكاشير على لوحة واحدة من الاستلام حتى التسليم. هذه الخدمة قيد التجهيز وليست متاحة بعد.</p>
           </li>
           <li class="card reveal">
             <span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 13h5M7 16h3"/></svg></span>
@@ -506,6 +506,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
             <h3>فيديوهات ترويجية</h3>
             <p>فيديو قصير يعرّف بالمحل أو يستعرض المنيو، مناسب للنشر على حسابات التواصل.</p>
           </li>
+          <li class="card reveal">
+            <span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>
+            <h3>نظام طلبات وكاشير <span class="tag">قريباً</span></h3>
+            <p>يرسل الزبون طلبه من المنيو مباشرة، ويتابعه الكاشير على لوحة واحدة من الاستلام حتى التسليم. هذه الخدمة قيد التجهيز وليست متاحة بعد.</p>
+          </li>
         </ul>
       </div>
     </section>
@@ -514,7 +519,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       <div class="wrap">
         <div class="head reveal">
           <h2 id="work-title">الأعمال</h2>
-          <p>نماذج بأسماء افتراضية أبنيها لأعرض شكل العمل. الجاهز منها موصوف كاملاً، والباقي يُضاف هنا حين يكتمل.</p>
+          <p>نماذج عرض أبنيها لأوضّح شكل العمل: بعضها بأسماء افتراضية، وبعضها فكرة أعددتها لأعرضها على مطعم قائم. الجاهز منها موصوف أدناه، والمعلَّم «قريباً» قيد البناء.</p>
         </div>
 
         <!-- أزرار التصفية: تُظهر الأعمال حسب النوع. كل عمل يحمل data-kind بقيمة menu أو site أو video -->
@@ -526,8 +531,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         </div>
 
         <!-- الأعمال كلها تُولَّد من works/works.json عند تشغيل build.py:
-             الجاهز (ready) يظهر هنا كبيراً، والقادم (soon) بطاقة صغيرة في القائمة تحته.
-             لإضافة عمل: tools/add_work.py (شوف CLAUDE.md). لا تكتب بطاقات الأعمال هنا باليد. -->
+             الجاهز (ready) يظهر هنا كبيراً، والقادم (soon) بطاقة صغيرة في القائمة تحته، إلا إذا حُدِّد featured.
+             لإضافة عمل أو تعديله: tools/add_work.py (انظر CLAUDE.md). لا تكتب بطاقات الأعمال هنا باليد. -->
 <!--FEATURED-->
 
         <ul class="works">
@@ -544,8 +549,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         </div>
         <!-- خطوات العمل: عدّلها بما يطابق طريقتك الفعلية -->
         <ol class="steps">
-          <li class="reveal"><h3>راسلني على واتساب</h3><p>تخبرني بنوع نشاطك وما تحتاجه.</p></li>
-          <li class="reveal"><h3>أرسل المحتوى</h3><p>الاسم والشعار والصور، مع الأصناف أو الخدمات أو المشاريع.</p></li>
+          <li class="reveal"><h3>تراسلني على واتساب</h3><p>تخبرني بنوع نشاطك وما تحتاجه.</p></li>
+          <li class="reveal"><h3>ترسل المحتوى</h3><p>الاسم والشعار والصور، مع الأصناف أو الخدمات أو المشاريع.</p></li>
           <li class="reveal"><h3>أبني وتراجع</h3><p>أرسل لك رابط معاينة، وتخبرني بالتعديلات التي تريدها.</p></li>
           <li class="reveal"><h3>تستلم الرابط</h3><p>رابط جاهز للنشر، ومع المنيو رمز <span class="ltr" lang="en">QR</span> للطاولات.</p></li>
         </ol>
@@ -569,15 +574,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
           </details>
           <details>
             <summary>هل يكون العمل بألوان محلّي وشعاره؟</summary>
-            <p>نعم. كل عمل يُبنى على هوية المحل نفسه، بألوانه وشعاره وأسلوبه.</p>
+            <p>نعم. كل عمل يُبنى على هوية نشاطك نفسه، بألوانه وشعاره وأسلوبه.</p>
           </details>
           <details>
             <summary>هل نظام الطلبات والكاشير متاح الآن؟</summary>
-            <p>ليس بعد، فهو قيد التجهيز. المتاح حالياً المنيو الرقمي والمواقع والفيديوهات الترويجية.</p>
+            <p>ليس بعد، فهو قيد التجهيز، ويمكنك رؤية فكرته في نموذج فور يو. المتاح حالياً المنيو الرقمي والمواقع والفيديوهات الترويجية.</p>
           </details>
           <details>
             <summary>كم تكلفة العمل؟</summary>
-            <p>تختلف حسب نوع العمل وحجمه. راسلني على واتساب وأرسل لك التفاصيل.</p>
+            <p>تختلف حسب نوع العمل وحجمه. راسلني على واتساب وسأرسل لك التفاصيل.</p>
           </details>
         </div>
       </div>
@@ -585,7 +590,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
     <section class="section" id="contact" aria-labelledby="contact-title">
       <div class="wrap">
-        <!-- التواصل: الرقم يظهر في أربعة مواضع: زر الواجهة، هذا الزر، الزر الثابت أسفل الصفحة، وسطر var value في آخر الملف -->
+        <!-- التواصل: الرقم يظهر في خمسة مواضع: زر الواجهة، زر هذا القسم، الرقم الظاهر تحته (id="wa-number"، مكتوب بمسافات)، الزر الثابت أسفل الصفحة، وسطر var value في آخر الملف. غيّرها كلها معاً -->
         <div class="contact-panel reveal">
           <h2 id="contact-title">لنبدأ بواجهتك</h2>
           <p>راسلني على واتساب، واذكر نوع نشاطك وما تحتاجه.</p>
@@ -616,7 +621,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 </div>
 
 <script>
-/* وظائف السكربت: نسخ الرقم، خط التقدم وظل الشريط العلوي، إظهار زر واتساب الثابت، تصفية الأعمال، ظهور الأقسام بهدوء، وتمييز القسم الحالي في القائمة. لا تتبّع ولا جمع بيانات. */
+/* وظائف السكربت: نسخ الرقم، خط التقدم وظل الشريط العلوي، إظهار زر واتساب الثابت وإخفاؤه، تصفية الأعمال، ظهور الأقسام بهدوء، وتمييز القسم الحالي في شريط التنقل. لا تتبّع ولا جمع بيانات. */
 (function () {
   var button = document.getElementById('copy-number');
   var number = document.getElementById('wa-number');
@@ -642,7 +647,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     });
   }
 
-  /* خط التقدم وظل الشريط العلوي */
+  /* خط التقدم، وظل الشريط العلوي، وزر واتساب الثابت (يظهر بعد تجاوز الواجهة، ويختفي قرب قسم التواصل) */
   var top = document.querySelector('.top');
   var progress = document.getElementById('progress');
   var floatBtn = document.querySelector('.float');

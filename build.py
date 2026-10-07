@@ -39,7 +39,7 @@ STATUSES = {'ready', 'soon'}
 LINK_TEXT = {'menu': 'افتح المنيو', 'site': 'افتح الموقع', 'video': 'شاهد الفيديو'}
 IMAGE_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png'}
 MAX_IMAGE = 400 * 1024
-FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'link', 'link_text', 'image', 'image_alt', 'featured'}
+FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'note', 'link', 'link_text', 'image', 'image_alt', 'featured'}
 BANNED = ['العقد']  # كلمات لا تُكتب في النصوص التعريفية (من قواعد CLAUDE.md)
 
 # مصغّرات مرسومة تُستخدم حين لا توجد صورة حقيقية للعمل بعد
@@ -84,6 +84,8 @@ def validate(works):
         for k in ('title_en', 'link_text', 'image_alt'):
             if k in w and not isinstance(w[k], str):
                 errors.append('%s: %s يجب أن يكون نصاً' % (where, k))
+        if 'note' in w and not (isinstance(w['note'], str) and w['note'].strip()):
+            errors.append('%s: note يجب أن يكون نصاً غير فارغ (احذف الحقل إذا لا تريده)' % where)
         link = w.get('link')
         if link is not None and not (isinstance(link, str) and re.fullmatch(r'https://[^\s"<>]+', link)):
             errors.append('%s: link يجب أن يبدأ بـ https:// وبلا مسافات' % where)
@@ -100,7 +102,7 @@ def validate(works):
                 errors.append('%s: image_alt مطلوب مع الصورة (وصف قصير لما فيها)' % where)
         if 'featured' in w and not isinstance(w['featured'], bool):
             errors.append('%s: featured يجب أن يكون true أو false' % where)
-        text = ' '.join(str(w.get(k, '')) for k in ('title', 'title_en', 'desc', 'link_text', 'image_alt')) + ' ' + ' '.join(pts)
+        text = ' '.join(str(w.get(k, '')) for k in ('title', 'title_en', 'desc', 'note', 'link_text', 'image_alt')) + ' ' + ' '.join(pts)
         for word in BANNED:
             if word in text:
                 errors.append('%s: كلمة «%s» ممنوعة في النصوص التعريفية' % (where, word))
@@ -155,6 +157,8 @@ def feature(w):
     ]
     if points:
         lines.append('            <ul>%s\n            </ul>' % points)
+    if w.get('note'):
+        lines.append('            <p class="feature-note">%s</p>' % t(w['note']))
     if w.get('link'):
         lines.append('            %s' % link(w, 'btn btn-line'))
     return '\n'.join(lines + ['          </div>', '        </article>'])
@@ -169,6 +173,8 @@ def card(w):
         '              <h3>%s</h3>' % title(w),
         '              <p>%s</p>' % t(w['desc']),
     ]
+    if w.get('note'):
+        lines.append('              <p class="feature-note">%s</p>' % t(w['note']))
     if w.get('link'):
         lines.append('              %s' % link(w, 'work-link'))
     return '\n'.join(lines + ['            </div>', '          </li>'])
@@ -204,13 +210,13 @@ def main():
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 %s
-<meta name="description" content="واجهة Wajha Studio: منيوهات رقمية للمطاعم، مواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، وفيديوهات ترويجية. عبدالله حمزه علي، الموصل.">%s
+<meta name="description" content="واجهة Wajha Studio: منيوهات رقمية للمطاعم، ومواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، وفيديوهات ترويجية. عبدالله حمزه علي، الموصل.">%s
 </head>
 <body>%s</body>
 </html>
 ''' % (src[:t_end], src[t_end:s_end], src[s_end:])
     (root / 'index.html').write_text(doc, encoding='utf-8')
-    print('ok', len(doc) // 1024, 'KB,', len(featured), 'featured +', len(rest), 'cards')
+    print('ok', len(doc.encode('utf-8')) // 1024, 'KB,', len(featured), 'featured +', len(rest), 'cards')
 
 
 if __name__ == '__main__':
