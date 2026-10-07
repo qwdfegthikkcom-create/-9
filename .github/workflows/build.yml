@@ -1,0 +1,67 @@
+# يبني الموقع ويفحصه عند كل تغيير.
+# على main: إذا تغيّرت الأعمال أو المصدر ونجح الفحص، يرفع index.html الجديد تلقائياً.
+# إذا فشل البناء أو الفحص لا يُرفع شيء، فيبقى الموقع المنشور كما هو.
+name: build-and-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # fontTools وbrotli: البناء يصغّر الخطوط المضمّنة بهما، ويتوقف إذا لم يجدهما
+      - name: Install fontTools
+        run: python3 -m pip install fonttools==4.66.1 brotli==1.2.0
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Build
+        run: python3 build.py
+
+      - name: Check
+        run: node tools/check.cjs
+
+      - name: index.html must match the build
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --exit-code -- index.html || {
+            echo "index.html لا يطابق البناء. شغّل python3 build.py وارفع index.html مع التغيير."
+            exit 1
+          }
+
+      - name: Commit rebuilt index.html
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "index.html محدّث"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Rebuild index.html"
+          git push
