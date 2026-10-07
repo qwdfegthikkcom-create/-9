@@ -1,6 +1,6 @@
 <title>واجهة ✦ Wajha Studio | منيوهات رقمية ومواقع · الموصل</title>
 <style>
-/* التخطيط: واجهة مقوّسة تحمل الاسم، يليها رواق من الأقواس لأنواع الأنشطة، ثم أقسام متتالية ببطاقات على شبكة */
+/* التخطيط: واجهة مقوّسة تحمل الاسم، يليها رواق من الأقواس لأنواع الأنشطة، ثم الأعمال مباشرة، ثم بقية الأقسام ببطاقات على شبكة */
 :root {
   color-scheme: dark;
 
@@ -205,7 +205,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   width: 3rem; height: 3rem; display: grid; place-items: center;
   border: 1.5px solid var(--gold); border-radius: var(--arch); color: var(--gold);
 }
-.card-icon svg { width: 1.45rem; height: 1.45rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.card-icon svg, .soon-icon svg { width: 1.45rem; height: 1.45rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .card h3 { font-size: 1.3rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .card p { color: var(--muted); font-size: 1rem; line-height: 1.85; }
 .tag {
@@ -228,7 +228,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   color: var(--muted); font-size: 0.92rem; line-height: 1.8;
   border-inline-start: 2px solid var(--gold-soft); padding-inline-start: 0.75rem;
 }
-.works { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr)); gap: 1.1rem; }
+/* زر فتح العمل وزر واتساب تحته، ينزل الثاني لسطر جديد إذا ضاق المكان */
+.feature-actions { display: flex; flex-wrap: wrap; gap: 0.6rem 0.75rem; margin-top: 0.2rem; }
+/* auto-fill لا auto-fit: إذا بقيت بطاقة واحدة بعد التصفية لا تتمدد لعرض القسم كله */
+.works { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr)); gap: 1.1rem; }
+/* القائمة تختفي إذا لم تبقَ فيها بطاقة ظاهرة. قاعدتان منفصلتان لأن المتصفح القديم يتجاهل القاعدة التي فيها :has كلها */
+.works:empty { display: none; }
+.works:not(:has(> li:not([hidden]))) { display: none; }
 .work {
   min-width: 0; display: grid; grid-template-rows: auto 1fr;
   background: var(--bg-raised); border: 1px solid var(--gold-soft); border-radius: var(--radius); overflow: hidden;
@@ -239,6 +245,30 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .work h3 { font-size: 1.2rem; }
 .work p { color: var(--muted); font-size: 0.96rem; line-height: 1.8; }
 .work-link { font-weight: 600; font-size: 0.96rem; margin-top: 0.2rem; }
+
+/* قائمة «قريباً»: كل عمل قيد البناء سطر مختصر بأيقونة، بلا صورة، حتى يصير جاهزاً فيظهر بطاقة كاملة */
+.soon { display: grid; gap: 1rem; }
+/* العنوان يختفي حين لا يبقى سطر ظاهر بعد التصفية */
+.soon:not(:has(.soon-item:not([hidden]))) { display: none; }
+.soon-title { font-size: 1.35rem; display: flex; align-items: center; gap: 0.9rem; }
+.soon-title::after { content: ""; flex: 1; height: 1px; background: var(--gold-soft); }
+.soon-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+/* الأيقونة في عمود، وبجانبها: العنوان ووسم «قريباً» في السطر الأول، ثم الوصف ورابط السؤال بالعرض كله */
+.soon-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 0.1rem 0.75rem;
+  grid-template-areas: "icon title tag" "icon desc desc" "icon ask ask";
+  grid-template-rows: auto 1fr auto; /* في العمودين يأخذ الوصف الفراغ الزائد، فتصطف روابط السؤال أسفل السطرين */
+  padding: 0.8rem 1rem 0.7rem; background: var(--bg-raised); border: 1px solid var(--gold-soft); border-radius: var(--radius);
+}
+.soon-icon {
+  grid-area: icon; width: 2.25rem; height: 2.7rem; display: grid; place-items: center; padding-top: 0.3rem;
+  border: 1.5px solid var(--gold-soft); border-bottom-color: var(--gold); border-radius: var(--arch); color: var(--gold);
+}
+.soon-icon svg { width: 1.1rem; height: 1.1rem; }
+.soon-item h4 { grid-area: title; margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.08rem; line-height: 1.55; text-wrap: balance; }
+.soon-item .tag { grid-area: tag; margin-top: 0.2rem; }
+.soon-item p { grid-area: desc; color: var(--muted); font-size: 0.92rem; line-height: 1.75; }
+.soon-ask { grid-area: ask; justify-self: start; font-size: 0.92rem; font-weight: 600; padding-block: 0.15rem; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip {
@@ -366,9 +396,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .nav::-webkit-scrollbar { display: none; }
   /* القائمة هنا صندوق تمرير يقصّ ما يخرج عنه، فنرسم إطار التركيز داخل الرابط */
   .nav a:focus-visible { outline-offset: -3px; }
-  .hero .wrap { grid-template-columns: minmax(0, 1fr); }
-  .arch { order: -1; width: 10rem; padding: 0.55rem; }
-  .arch-letter { font-size: 5rem; }
+  /* الواجهة مختصرة على الهاتف، حتى يظهر زر واتساب في أول شاشة. القوس يبقى فوق النص لأنه الهوية */
+  .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; padding-block: 1.5rem 2rem; }
+  .hero-text { gap: 1rem; }
+  .arch { order: -1; width: 6.5rem; padding: 0.4rem; }
+  .arch-letter { font-size: 3.4rem; }
   .arch-word { display: none; }
   .about { grid-template-columns: minmax(0, 1fr); }
   .feature { grid-template-columns: minmax(0, 1fr); }
@@ -377,7 +409,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 }
 /* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
 @media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
+/* أسطر «قريباً» عمودين حين يتسع المكان */
+@media (min-width: 48rem) { .soon-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* الخطوات الأربع 2+2 على الحاسوب اللوحي، بدل 3 وخطوة وحيدة تحتها */
+@media (min-width: 40rem) and (max-width: 63.75rem) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 36rem) {
+  .lede { font-size: 1.05rem; }
   .arcade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .points { grid-template-columns: minmax(0, 1fr); }
 }
@@ -412,11 +449,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         <span class="sr-only">، العودة إلى أعلى الصفحة</span>
       </a>
       <nav class="nav" aria-label="أقسام الصفحة">
-        <a href="#about">النبذة</a>
-        <a href="#services">الخدمات</a>
         <a href="#work">الأعمال</a>
+        <a href="#services">الخدمات</a>
         <a href="#process">طريقة العمل</a>
         <a href="#faq">الأسئلة</a>
+        <a href="#about">النبذة</a>
         <a class="btn nav-cta" href="#contact">تواصل معي</a>
       </nav>
     </div>
@@ -456,24 +493,32 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       </div>
     </div>
 
-    <section class="section" id="about" aria-labelledby="about-title">
+    <section class="section" id="work" aria-labelledby="work-title">
       <div class="wrap">
         <div class="head reveal">
-          <h2 id="about-title">النبذة</h2>
+          <h2 id="work-title">الأعمال</h2>
+          <p>نماذج عرض أبنيها لأوضّح شكل العمل: بعضها بأسماء افتراضية، وبعضها فكرة أعددتها لأعرضها على مطعم قائم. الجاهز منها موصوف أدناه، والمعلَّم «قريباً» قيد البناء.</p>
         </div>
-        <div class="about">
-          <!-- النبذة: عدّل الفقرتين هنا -->
-          <div class="about-text reveal">
-            <p>أنا عبدالله حمزه علي، من الموصل. أعمل تحت اسم «واجهة» على تصميم وبناء منيوهات رقمية للمطاعم، ومواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، وأعدّ لها فيديوهات ترويجية.</p>
-            <p>أقدّم خدماتي لأصحاب الأنشطة في العراق، وأهتم بأن تكون الصفحة واضحة وسهلة على الهاتف قبل أي شيء آخر.</p>
-          </div>
-          <!-- نقاط التميّز: عدّلها بما يطابق طريقتك -->
-          <ul class="points reveal">
-            <li><h3>الهاتف أولاً</h3><p>تُصمَّم كل صفحة لشاشة الهاتف أولاً، ثم للحاسوب.</p></li>
-            <li><h3>بهوية نشاطك</h3><p>الألوان والشعار والأسلوب من هويتك أنت، لا قالب واحد للجميع.</p></li>
-            <li><h3>عربية من الأساس</h3><p>اتجاه من اليمين إلى اليسار وخط عربي واضح ومقروء.</p></li>
-            <li><h3>سهلة على الزبون</h3><p>رابط يُفتح مباشرة في المتصفح، بلا تطبيق ولا تسجيل.</p></li>
-          </ul>
+
+        <!-- أزرار التصفية: تُظهر الأعمال حسب النوع. كل عمل يحمل data-kind بقيمة menu أو site أو video -->
+        <div class="filters reveal" role="group" aria-label="تصفية الأعمال حسب النوع">
+          <button class="chip" type="button" id="filter-all" data-filter="all" aria-pressed="true">الكل</button>
+          <button class="chip" type="button" id="filter-menu" data-filter="menu" aria-pressed="false">المنيوهات</button>
+          <button class="chip" type="button" id="filter-site" data-filter="site" aria-pressed="false">المواقع</button>
+          <button class="chip" type="button" id="filter-video" data-filter="video" aria-pressed="false">الفيديو</button>
+        </div>
+
+        <!-- الأعمال كلها تُولَّد من works/works.json عند تشغيل build.py:
+             الجاهز (ready) يظهر هنا كبيراً، والجاهز مع featured: false بطاقة صغيرة في .works،
+             والقادم (soon) سطر مختصر في قائمة «قريباً في الأعمال» تحتها.
+             لإضافة عمل أو تعديله: tools/add_work.py (انظر CLAUDE.md). لا تكتب بطاقات الأعمال هنا باليد. -->
+<!--FEATURED-->
+
+        <ul class="works"><!--WORKS--></ul>
+
+        <div class="soon reveal">
+          <h3 class="soon-title">قريباً في الأعمال</h3>
+          <ul class="soon-list"><!--SOON--></ul>
         </div>
       </div>
     </section>
@@ -511,32 +556,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
             <h3>نظام طلبات وكاشير <span class="tag">قريباً</span></h3>
             <p>يرسل الزبون طلبه من المنيو مباشرة، ويتابعه الكاشير على لوحة واحدة من الاستلام حتى التسليم. هذه الخدمة قيد التجهيز وليست متاحة بعد.</p>
           </li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section" id="work" aria-labelledby="work-title">
-      <div class="wrap">
-        <div class="head reveal">
-          <h2 id="work-title">الأعمال</h2>
-          <p>نماذج عرض أبنيها لأوضّح شكل العمل: بعضها بأسماء افتراضية، وبعضها فكرة أعددتها لأعرضها على مطعم قائم. الجاهز منها موصوف أدناه، والمعلَّم «قريباً» قيد البناء.</p>
-        </div>
-
-        <!-- أزرار التصفية: تُظهر الأعمال حسب النوع. كل عمل يحمل data-kind بقيمة menu أو site أو video -->
-        <div class="filters reveal" role="group" aria-label="تصفية الأعمال حسب النوع">
-          <button class="chip" type="button" id="filter-all" data-filter="all" aria-pressed="true">الكل</button>
-          <button class="chip" type="button" id="filter-menu" data-filter="menu" aria-pressed="false">المنيوهات</button>
-          <button class="chip" type="button" id="filter-site" data-filter="site" aria-pressed="false">المواقع</button>
-          <button class="chip" type="button" id="filter-video" data-filter="video" aria-pressed="false">الفيديو</button>
-        </div>
-
-        <!-- الأعمال كلها تُولَّد من works/works.json عند تشغيل build.py:
-             الجاهز (ready) يظهر هنا كبيراً، والقادم (soon) بطاقة صغيرة في القائمة تحته، إلا إذا حُدِّد featured.
-             لإضافة عمل أو تعديله: tools/add_work.py (انظر CLAUDE.md). لا تكتب بطاقات الأعمال هنا باليد. -->
-<!--FEATURED-->
-
-        <ul class="works">
-<!--WORKS-->
         </ul>
       </div>
     </section>
@@ -588,9 +607,31 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       </div>
     </section>
 
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <h2 id="about-title">النبذة</h2>
+        </div>
+        <div class="about">
+          <!-- النبذة: عدّل الفقرتين هنا -->
+          <div class="about-text reveal">
+            <p>أنا عبدالله حمزه علي، من الموصل. أعمل تحت اسم «واجهة» على تصميم وبناء منيوهات رقمية للمطاعم، ومواقع للعيادات والمحلات والمقاولين والمكاتب الهندسية، وأعدّ لها فيديوهات ترويجية.</p>
+            <p>أقدّم خدماتي لأصحاب الأنشطة في العراق، وأهتم بأن تكون الصفحة واضحة وسهلة على الهاتف قبل أي شيء آخر.</p>
+          </div>
+          <!-- نقاط التميّز: عدّلها بما يطابق طريقتك -->
+          <ul class="points reveal">
+            <li><h3>الهاتف أولاً</h3><p>تُصمَّم كل صفحة لشاشة الهاتف أولاً، ثم للحاسوب.</p></li>
+            <li><h3>بهوية نشاطك</h3><p>الألوان والشعار والأسلوب من هويتك أنت، لا قالب واحد للجميع.</p></li>
+            <li><h3>عربية من الأساس</h3><p>اتجاه من اليمين إلى اليسار وخط عربي واضح ومقروء.</p></li>
+            <li><h3>سهلة على الزبون</h3><p>رابط يُفتح مباشرة في المتصفح، بلا تطبيق ولا تسجيل.</p></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="contact" aria-labelledby="contact-title">
       <div class="wrap">
-        <!-- التواصل: الرقم يظهر في خمسة مواضع: زر الواجهة، زر هذا القسم، الرقم الظاهر تحته (id="wa-number"، مكتوب بمسافات)، الزر الثابت أسفل الصفحة، وسطر var value في آخر الملف. غيّرها كلها معاً -->
+        <!-- التواصل: الرقم يظهر في هذا الملف في خمسة مواضع: زر الواجهة، زر هذا القسم، الرقم الظاهر تحته (id="wa-number"، مكتوب بمسافات)، الزر الثابت أسفل الصفحة، وسطر var value في آخر الملف. وفي build.py في WA_NUMBER لروابط الأعمال. غيّرها كلها معاً -->
         <div class="contact-panel reveal">
           <h2 id="contact-title">لنبدأ بواجهتك</h2>
           <p>راسلني على واتساب، واذكر نوع نشاطك وما تحتاجه.</p>
@@ -609,15 +650,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     <div class="wrap">
       <p>واجهة ✦ <span class="ltr" lang="en">Wajha Studio</span> · عبدالله حمزه علي · الموصل</p>
       <nav class="foot-nav" aria-label="روابط التذييل">
-        <a href="#services">الخدمات</a>
         <a href="#work">الأعمال</a>
+        <a href="#services">الخدمات</a>
         <a href="#contact">التواصل</a>
         <a href="#top">أعلى الصفحة</a>
       </nav>
     </div>
   </footer>
 
-  <a class="btn float" href="https://wa.me/9647747800611?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%AE%D8%AF%D9%85%D8%A7%D8%AA%20%D9%88%D8%A7%D8%AC%D9%87%D8%A9." target="_blank" rel="noopener">واتساب</a>
+  <a class="btn float" href="https://wa.me/9647747800611?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%AE%D8%AF%D9%85%D8%A7%D8%AA%20%D9%88%D8%A7%D8%AC%D9%87%D8%A9." target="_blank" rel="noopener">راسلني على واتساب</a>
 </div>
 
 <script>

@@ -1,12 +1,16 @@
 // فحص الموقع بعد البناء: يفتح index.html بمتصفح حقيقي ويتأكد أن كل شيء يعمل.
 //   node tools/check.cjs            (يرجع 1 إذا وجد مشكلة)
 // يحتاج playwright: npm i playwright (أو ضع مساره في PLAYWRIGHT)، وكروميوم (أو مساره في CHROMIUM).
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
 
-const URL_ = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
-const WA = '9647747800611';
+const ROOT = path.join(__dirname, '..');
+const URL_ = pathToFileURL(path.join(ROOT, 'index.html')).href;
+// رقم واتساب يُقرأ من build.py (WA_NUMBER)، فلا يُكتب في مكان آخر
+const WA = (fs.readFileSync(path.join(ROOT, 'build.py'), 'utf8').match(/^WA_NUMBER = '(\d+)'/m) || [])[1];
+if (!WA) { console.error('لم أجد WA_NUMBER في build.py'); process.exit(1); }
 const problems = [];
 const bad = msg => problems.push(msg);
 
@@ -40,8 +44,40 @@ const bad = msg => problems.push(msg);
       })));
       imgs.filter(([, w]) => !w).forEach(([alt]) => bad(`صورة عمل لا تُفتح: ${alt}`));
 
-      // أزرار التصفية: كل زر يُظهر عملاً واحداً على الأقل، و«الكل» يُظهر كل الأعمال
+      // ترتيب روابط القائمة العلوية يطابق ترتيب الأقسام في الصفحة
+      const order = await p.evaluate(() => {
+        const ids = [...document.querySelectorAll('.nav a[href^="#"]:not(.btn)')].map(a => a.getAttribute('href').slice(1));
+        const pos = ids.map(id => { const el = document.getElementById(id); return el ? [...document.querySelectorAll('main section')].indexOf(el) : -1; });
+        return { ids, sorted: pos.every((x, i) => x >= 0 && (i === 0 || x > pos[i - 1])) };
+      });
+      if (!order.sorted) bad(`ترتيب روابط القائمة (${order.ids.join('، ')}) لا يطابق ترتيب الأقسام في الصفحة`);
+      // الأعمال أول قسم بعد رواق الأنشطة
+      const afterArcade = await p.evaluate(() => { const a = document.querySelector('.arcade-band'); const n = a && a.nextElementSibling; return n ? n.id : ''; });
+      if (afterArcade !== 'work') bad(`القسم بعد رواق الأنشطة هو «${afterArcade}» لا «work» (الأعمال)`);
+
+      // كل عمل جاهز فيه زر واتساب، وكل سطر في قائمة «قريباً» يقول «قريباً» وفيه رابط واتساب
+      const feats = await p.$$eval('#work .feature', els => els.map(e => [e.id, !!e.querySelector('a[href*="wa.me/"]')]));
+      feats.filter(([, ok]) => !ok).forEach(([id]) => bad(`العمل الجاهز ${id} بلا زر واتساب`));
+      const rows = await p.$$eval('#work .soon-item', els => els.map(e => [e.id, e.querySelector('.tag') ? e.querySelector('.tag').textContent.trim() : '', !!e.querySelector('a[href*="wa.me/"]')]));
+      for (const [id, tag, ask] of rows) {
+        if (tag !== 'قريباً') bad(`سطر «قريباً» ${id} لا يحمل وسم «قريباً»`);
+        if (!ask) bad(`سطر «قريباً» ${id} بلا رابط واتساب`);
+      }
+      const visible = sel => p.$eval(sel, el => getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0).catch(() => false);
+      if (rows.length && !(await visible('#work .soon'))) bad('قائمة «قريباً» لا تظهر مع أن فيها أعمالاً');
+
+      // أزرار التصفية: كل زر يُظهر عملاً واحداً على الأقل، و«الكل» يُظهر كل الأعمال،
+      // وعنوان «قريباً» وقائمة البطاقات الصغيرة يختفيان إذا لم يبقَ فيهما عمل ظاهر
       const total = await p.$$eval('#work [data-kind]', els => els.length);
+      const listsMatch = async label => {
+        for (const [box, item] of [['#work .soon', '.soon-item'], ['#work .works', '.work']]) {
+          const left = await p.$$eval(`${box} ${item}`, els => els.filter(e => !e.hidden).length).catch(() => 0);
+          if (!(await p.$(box))) continue;
+          const shownBox = await visible(box);
+          if (left && !shownBox) bad(`${label}: ${box} مخفية وفيها ${left} عمل ظاهر`);
+          if (!left && shownBox) bad(`${label}: ${box} ظاهرة وهي فارغة`);
+        }
+      };
       for (const chip of await p.$$('.chip')) {
         const f = await chip.getAttribute('data-filter');
         await chip.evaluate(el => el.click());
@@ -49,7 +85,21 @@ const bad = msg => problems.push(msg);
         if (f === 'all' && shown !== total) bad(`زر «الكل» يُظهر ${shown} من ${total}`);
         if (f !== 'all' && shown === 0) bad(`زر التصفية «${f}» لا يُظهر أي عمل`);
         if (await chip.getAttribute('aria-pressed') !== 'true') bad(`زر التصفية «${f}» لا يتحدد بعد الضغط`);
+        await listsMatch(`زر التصفية «${f}»`);
       }
+      // تصفية لا تُبقي أي سطر «قريباً»: عنوان القائمة يجب أن يختفي (حتى لو لم توجد اليوم تصفية كهذه)
+      await p.$$eval('#work .soon-item', els => els.forEach(e => { e.hidden = true; }));
+      await listsMatch('بلا أسطر «قريباً»');
+      // أقواس الأنشطة تصفّي أيضاً
+      const arch = await p.$('.arcade a[data-filter]');
+      if (arch) {
+        const f = await arch.getAttribute('data-filter');
+        await arch.evaluate(el => el.click());
+        const wrong = await p.$$eval('#work [data-kind]', (els, f) => els.filter(e => !e.hidden && e.dataset.kind !== f).length, f);
+        if (wrong) bad(`قوس النشاط «${f}» يُظهر ${wrong} عملاً من نوع آخر`);
+        await listsMatch(`قوس النشاط «${f}»`);
+      }
+      await p.$eval('#filter-all', el => el.click());
 
       // الروابط
       const links = await p.$$eval('a[href]', as => as.map(a => [a.getAttribute('href'), a.target, a.rel, a.textContent.trim()]));

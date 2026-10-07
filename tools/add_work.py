@@ -22,7 +22,9 @@
   python3 tools/add_work.py --id cafe-menu --note "سطر توضيحي تحت النقاط"   # و--note "" يحذفه
   python3 tools/add_work.py --remove cafe-menu
 
-نفس id لعمل موجود = تعديله (مثلاً بطاقة «قريباً» تصير «نموذج جاهز»)، وid جديد = إضافة.
+نفس id لعمل موجود = تعديله (مثلاً سطر «قريباً» يصير بطاقة «نموذج جاهز»)، وid جديد = إضافة.
+الجاهز (ready) يظهر بطاقة كبيرة مع زر واتساب «أريد منيو/موقعاً/فيديو مثل هذا»، و--featured no يجعله بطاقة صغيرة.
+القادم (soon) يظهر سطراً مختصراً في قائمة «قريباً في الأعمال» مع رابط «اسألني عن مثله»، بلا صورة.
 البيئة: PLAYWRIGHT و CHROMIUM لمسار playwright وكروميوم إذا لم يكونا مثبتين بشكل عادي.
 """
 import argparse, json, pathlib, shutil, subprocess, sys, tempfile
@@ -95,7 +97,7 @@ def main():
     ap.add_argument('--image', action='append', help='صورة جاهزة بدل التصوير (مرة أو مرتين)')
     ap.add_argument('--raw-image', action='store_true', help='استخدم الصورة كما هي بلا إطار الهوية')
     ap.add_argument('--alt', help='وصف الصورة لقارئات الشاشة')
-    ap.add_argument('--featured', choices=['yes', 'no'], help='اعرضه كبيراً أو بطاقة صغيرة (افتراضياً: الجاهز كبير)')
+    ap.add_argument('--featured', choices=['yes', 'no'], help='للجاهز فقط: بطاقة كبيرة أو صغيرة (افتراضياً كبيرة). القادم سطر في قائمة «قريباً» دائماً')
     ap.add_argument('--first', action='store_true', help='ضعه أول القائمة')
     args = ap.parse_args()
 
@@ -125,7 +127,7 @@ def main():
                 if args.first:
                     works.insert(0, w)
                 else:
-                    # الجاهز قبل القادم، حتى تبقى بطاقات «قريباً» في الآخر
+                    # الجاهز قبل القادم، حتى يبقى ترتيب القائمة: الجاهز أولاً ثم «قريباً»
                     status = args.status or ('ready' if (args.link or args.shot or args.image) else 'soon')
                     pos = next((i for i, x in enumerate(works) if x.get('status') == 'soon'), len(works)) if status == 'ready' else len(works)
                     works.insert(pos, w)
