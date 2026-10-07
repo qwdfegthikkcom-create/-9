@@ -133,7 +133,8 @@ def title(w):
 
 
 def link(w, cls):
-    return '<a class="%s" href="%s" target="_blank" rel="noopener">%s</a>' % (
+    # الرابط يُفتح في نافذة جديدة، فنقول ذلك لقارئ الشاشة بنص مخفي
+    return '<a class="%s" href="%s" target="_blank" rel="noopener">%s<span class="sr-only"> (يُفتح في نافذة جديدة)</span></a>' % (
         cls, html.escape(w['link']), t(w.get('link_text') or LINK_TEXT[w['kind']]))
 
 

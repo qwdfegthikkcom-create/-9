@@ -21,12 +21,16 @@
   --measure: 60ch;
   --gutter: clamp(16px, 5vw, 48px);
   --radius: 8px;
+  /* القوس: أعلى نصف دائري مهما كان العرض، وقاعدة مستقيمة. للشعار والواجهة والرواق والأيقونات ولوحة التواصل */
+  --arch: 999px 999px 4px 4px;
+  --arch-inner: 999px 999px 3px 3px; /* قوس داخل قوس */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1); /* منحنى الحركة لكل الانتقالات */
 }
 /*FONTS*/
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 5.5rem; }
+/* scroll-padding: مسافة تحت الشريط العلوي وفوق زر واتساب الثابت عند الانتقال إلى قسم أو عنصر */
+html { scroll-behavior: smooth; scroll-padding-top: 5.5rem; scroll-padding-bottom: 5rem; }
 body {
   margin: 0;
   background: var(--bg);
@@ -38,7 +42,7 @@ body {
 img { max-width: 100%; }
 [hidden] { display: none !important; }
 
-.page { overflow-wrap: break-word; padding-bottom: 4.5rem; }
+.page { overflow-wrap: break-word; }
 .wrap { max-width: 70rem; margin-inline: auto; padding-inline: var(--gutter); }
 
 a { color: var(--gold); text-underline-offset: 0.3em; }
@@ -46,9 +50,14 @@ a:hover { color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 
 h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.45; margin: 0; text-wrap: balance; }
-p { margin: 0; }
+p { margin: 0; text-wrap: pretty; }
 ul, ol { margin: 0; padding: 0; list-style: none; }
 .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+/* نص لقارئ الشاشة فقط، لا يظهر على الشاشة */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 
 .skip {
   position: absolute; inset-inline-start: 1rem; top: -4rem;
@@ -90,17 +99,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .brand-mark {
   display: grid; place-items: center; flex: none;
   width: 2.1rem; height: 2.5rem;
-  border: 1.5px solid var(--gold); border-radius: 999px 999px 3px 3px;
+  border: 1.5px solid var(--gold); border-radius: var(--arch);
   font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; line-height: 1; color: var(--gold);
   padding-top: 0.25rem;
 }
 .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
 .brand-name .star { color: var(--gold); margin-inline: 0.25em; }
-.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.15rem; }
-.nav a { display: block; padding: 0.45rem 0.65rem; color: var(--muted); text-decoration: none; font-size: 0.98rem; }
+.nav { --nav-pad: 0.65rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.15rem; }
+.nav a { display: block; padding: 0.45rem var(--nav-pad); color: var(--muted); text-decoration: none; font-size: 0.98rem; }
 .nav a { position: relative; white-space: nowrap; transition: color 0.3s var(--ease); }
 .nav a:not(.btn)::after {
-  content: ""; position: absolute; inset-inline: 0.65rem; bottom: 0.2rem; height: 1.5px;
+  content: ""; position: absolute; inset-inline: var(--nav-pad); bottom: 0.2rem; height: 1.5px;
   background: var(--gold); transform: scaleX(0); transition: transform 0.35s var(--ease);
 }
 .nav a:hover, .nav a[aria-current="true"] { color: var(--gold); }
@@ -133,12 +142,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .arch {
   justify-self: center; width: min(100%, 18rem); aspect-ratio: 3 / 4; max-width: 100%;
-  border: 2px solid var(--gold); border-radius: 999px 999px 6px 6px;
+  border: 2px solid var(--gold); border-radius: var(--arch);
   padding: 0.9rem; display: grid;
   box-shadow: 0 0 5rem var(--gold-glow);
 }
 .arch-inner {
-  border: 1px solid var(--gold-soft); border-radius: 999px 999px 4px 4px;
+  border: 1px solid var(--gold-soft); border-radius: var(--arch-inner);
   background: linear-gradient(180deg, var(--bg-raised), var(--bg-deep));
   display: grid; place-items: center; align-content: center; gap: 0.25rem;
 }
@@ -154,7 +163,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .arcade a {
   aspect-ratio: 4 / 5; max-width: 100%; text-decoration: none;
   border: 1.5px solid var(--gold-soft); border-bottom-color: var(--gold);
-  border-radius: 999px 999px 3px 3px;
+  border-radius: var(--arch);
   display: grid; place-items: end center; padding: 0 0.25rem 16%;
   font-family: var(--font-display); font-weight: 600; font-size: clamp(0.95rem, 1.7vw, 1.25rem); color: var(--ink);
   text-align: center; line-height: 1.4;
@@ -179,7 +188,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .points { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1.75rem; }
 .points li { display: grid; gap: 0.25rem; align-content: start; min-width: 0; }
 .points h3 { font-size: 1.2rem; display: flex; gap: 0.5rem; align-items: baseline; }
-.points h3::before { content: "✦"; color: var(--gold); font-size: 0.8em; }
+/* «✦» و«+» زخرفة: الصيغة الثانية تُبعدها عن قارئ الشاشة، والأولى للمتصفحات القديمة */
+.points h3::before { content: "✦"; content: "✦" / ""; color: var(--gold); font-size: 0.8em; }
 .points p { color: var(--muted); font-size: 0.98rem; line-height: 1.8; }
 
 /* الخدمات */
@@ -193,7 +203,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .card:hover { border-color: var(--gold); transform: translateY(-5px); box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.3); }
 .card-icon {
   width: 3rem; height: 3rem; display: grid; place-items: center;
-  border: 1.5px solid var(--gold); border-radius: 999px 999px 4px 4px; color: var(--gold);
+  border: 1.5px solid var(--gold); border-radius: var(--arch); color: var(--gold);
 }
 .card-icon svg { width: 1.45rem; height: 1.45rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .card h3 { font-size: 1.3rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
@@ -228,12 +238,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip {
   font: inherit; font-size: 0.98rem; line-height: 1.6; color: var(--muted); background: transparent; cursor: pointer;
-  border: 1px solid var(--gold-soft); border-radius: 999px; padding: 0.3rem 1.15rem;
+  border: 1px solid var(--gold-soft); border-radius: 999px; padding: 0.55rem 1.15rem;
   transition: background-color 0.3s var(--ease), color 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 .chip:hover { color: var(--gold); border-color: var(--gold); }
 .chip[aria-pressed="true"] { background: var(--gold); color: var(--bg); border-color: var(--gold); font-weight: 600; }
-.pop { animation: rise 0.5s var(--ease) both; }
+/* backwards لا both: بعد انتهاء الحركة يرجع رفع البطاقة عند المرور عليها */
+.pop { animation: rise 0.5s var(--ease) backwards; }
 
 /* مصغّرات توضيحية مرسومة بالخطوط، وليست صوراً لأعمال حقيقية */
 .thumb {
@@ -282,7 +293,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   font-family: var(--font-display); font-weight: 600; font-size: 1.2rem;
 }
 .faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; color: var(--gold); font-family: var(--font-body); font-size: 1.5rem; line-height: 1; flex: none; transition: transform 0.4s var(--ease); }
+.faq summary::after { content: "+"; content: "+" / ""; color: var(--gold); font-family: var(--font-body); font-size: 1.5rem; line-height: 1; flex: none; transition: transform 0.4s var(--ease); }
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq summary { transition: color 0.3s var(--ease); }
 .faq summary:hover { color: var(--gold); }
@@ -293,7 +304,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .contact-panel {
   justify-self: center; width: min(100%, 36rem); text-align: center;
   display: grid; gap: 1.1rem; justify-items: center;
-  border: 2px solid var(--gold); border-radius: min(18rem, 46vw) min(18rem, 46vw) var(--radius) var(--radius);
+  border: 2px solid var(--gold); border-radius: var(--arch);
   background: linear-gradient(180deg, var(--bg-raised), var(--bg-deep));
   padding: clamp(5rem, 16vw, 7rem) clamp(1.25rem, 5vw, 3rem) clamp(2rem, 5vw, 3rem);
   box-shadow: 0 0 5rem var(--gold-glow);
@@ -304,7 +315,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .number { font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; user-select: all; }
 .copy {
   font: inherit; font-size: 0.92rem; color: var(--gold); background: transparent;
-  border: 1px solid var(--gold-soft); border-radius: 999px; padding: 0.2rem 1rem; cursor: pointer;
+  border: 1px solid var(--gold-soft); border-radius: 999px; padding: 0.45rem 1rem; cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
 .copy:hover { background: var(--gold); color: var(--bg); }
@@ -313,11 +324,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* التذييل */
 .foot { border-top: 1px solid var(--gold-soft); background: var(--bg-deep); }
 .foot .wrap {
-  padding-block: 1.75rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem 2rem;
+  padding-block: 1.75rem calc(1.75rem + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem 2rem;
   color: var(--muted); font-size: 0.95rem;
 }
-.foot-nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
-.foot-nav a { color: var(--muted); text-decoration: none; }
+/* مساحة لمس أكبر للروابط (padding)، والهامش السالب يُبقي المسافات الظاهرة كما هي */
+.foot-nav { display: flex; flex-wrap: wrap; gap: 0 1.25rem; margin-block: -0.5rem; }
+.foot-nav a { display: inline-block; padding-block: 0.5rem; color: var(--muted); text-decoration: none; }
 .foot-nav a:hover { color: var(--gold); }
 
 /* زر واتساب الثابت */
@@ -347,6 +359,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 @media (max-width: 52rem) {
   .nav { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
   .nav::-webkit-scrollbar { display: none; }
+  /* القائمة هنا صندوق تمرير يقصّ ما يخرج عنه، فنرسم إطار التركيز داخل الرابط */
+  .nav a:focus-visible { outline-offset: -3px; }
   .hero .wrap { grid-template-columns: minmax(0, 1fr); }
   .arch { order: -1; width: 10rem; padding: 0.55rem; }
   .arch-letter { font-size: 5rem; }
@@ -356,10 +370,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .feature .thumb { min-height: 0; height: auto; aspect-ratio: 16 / 10; border-inline-end: 0; border-bottom: 1px solid var(--gold-soft); }
   .feature .screen.phone { width: 25%; }
 }
+/* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
+@media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
 @media (max-width: 36rem) {
   .arcade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .points { grid-template-columns: minmax(0, 1fr); }
 }
+/* روابط القائمة الخمسة تظهر كاملة على الهواتف الضيقة: نقلّل الفراغ بينها ثم الخط قليلاً */
+@media (max-width: 25rem) { .nav { --nav-pad: 0.45rem; gap: 0; } }
+@media (max-width: 22rem) { .nav { --nav-pad: 0.4rem; } .nav a { font-size: 0.9rem; padding-block: 0.55rem; } }
+/* بلا جافاسكربت لا تعمل أزرار التصفية والنسخ، فلا نعرضها، ولا الزر الثابت الذي لا يختفي حينها */
+@media (scripting: none) { .filters, .copy, .float { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .hero-text > *, .arch, .arch-letter, .pop, .faq details[open] p { animation: none; }
@@ -369,6 +390,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .btn, .card, .work { transition: none; }
   .btn:hover, .card:hover, .work:hover { transform: none; }
+  .nav a:not(.btn)::after, .faq summary::after { transition: none; }
 }
 </style>
 
@@ -379,9 +401,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     <span class="progress" id="progress" aria-hidden="true"></span>
     <div class="wrap">
       <!-- الاسم في الشريط العلوي -->
-      <a class="brand" href="#top" aria-label="واجهة Wajha Studio، العودة إلى أعلى الصفحة">
+      <a class="brand" href="#top">
         <span class="brand-mark" aria-hidden="true">و</span>
         <span class="brand-name">واجهة<span class="star" aria-hidden="true">✦</span><span class="ltr" lang="en">Wajha Studio</span></span>
+        <span class="sr-only">، العودة إلى أعلى الصفحة</span>
       </a>
       <nav class="nav" aria-label="أقسام الصفحة">
         <a href="#about">النبذة</a>
@@ -593,7 +616,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 </div>
 
 <script>
-/* أربع وظائف: نسخ الرقم، خط التقدم، تصفية الأعمال، وظهور الأقسام بهدوء. لا تتبّع ولا جمع بيانات. */
+/* وظائف السكربت: نسخ الرقم، خط التقدم وظل الشريط العلوي، إظهار زر واتساب الثابت، تصفية الأعمال، ظهور الأقسام بهدوء، وتمييز القسم الحالي في القائمة. لا تتبّع ولا جمع بيانات. */
 (function () {
   var button = document.getElementById('copy-number');
   var number = document.getElementById('wa-number');
@@ -637,9 +660,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     }
     ticking = false;
   }
-  window.addEventListener('scroll', function () {
+  function requestTick() {
     if (!ticking) { ticking = true; window.requestAnimationFrame(onScroll); }
-  }, { passive: true });
+  }
+  /* يُعاد الحساب عند التمرير، وعند تغيّر حجم الشاشة، وبعد التصفية لأن طول الصفحة يتغيّر */
+  window.addEventListener('scroll', requestTick, { passive: true });
+  window.addEventListener('resize', requestTick);
   onScroll();
 
   /* تصفية الأعمال: من الأزرار، أو من أقواس الأنشطة */
@@ -654,6 +680,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       el.hidden = !show;
       if (show) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     });
+    requestTick();
   }
   Array.prototype.forEach.call(chips, function (chip) {
     chip.addEventListener('click', function () { applyFilter(chip.getAttribute('data-filter')); });
@@ -664,7 +691,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
   if ('IntersectionObserver' in window) {
     /* ظهور الأقسام بهدوء، والبطاقات واحدة بعد الأخرى */
-    document.documentElement.classList.add('js');
     Array.prototype.forEach.call(document.querySelectorAll('.cards, .works, .steps'), function (group) {
       Array.prototype.forEach.call(group.children, function (el, i) { el.style.transitionDelay = (i % 3) * 110 + 'ms'; });
     });
@@ -684,17 +710,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     Array.prototype.forEach.call(document.querySelectorAll('.nav a[href^="#"]:not(.btn)'), function (a) {
       links[a.getAttribute('href').slice(1)] = a;
     });
+    /* نراقب أيضاً الواجهة والتواصل (بلا رابط في القائمة)، فيُزال التمييز حين نصل إليهما */
     var spy = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         var a = links[entry.target.id];
-        if (!a) return;
         if (entry.isIntersecting) {
           for (var id in links) links[id].removeAttribute('aria-current');
-          a.setAttribute('aria-current', 'true');
+          if (a) a.setAttribute('aria-current', 'true');
+        } else if (a) {
+          a.removeAttribute('aria-current');
         }
       });
     }, { rootMargin: '-45% 0px -50% 0px' });
-    for (var id in links) { var sec = document.getElementById(id); if (sec) spy.observe(sec); }
+    ['top', 'contact'].concat(Object.keys(links)).forEach(function (id) {
+      var sec = document.getElementById(id);
+      if (sec) spy.observe(sec);
+    });
   } else {
     Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el) { el.classList.remove('reveal'); });
   }
