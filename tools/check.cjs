@@ -69,12 +69,15 @@ const bad = msg => problems.push(msg);
           && box.width > 0 && box.top >= pic.top && box.bottom <= pic.bottom];
       }));
       badges.filter(([, real, ok]) => !real && !ok).forEach(([alt]) => bad(`صورة عمل بلا وسم «نموذج عرض» ظاهر: ${alt}`));
-      // شريط لقطات الشاشة: يُوصل إليه بلوحة المفاتيح وله اسم، ولا يوسّع الصفحة (يُفحص في التمرير الأفقي أعلاه)
-      const tours = await p.$$eval('#work .tour', els => els.map(e => [e.getAttribute('aria-label') || '', e.getAttribute('tabindex'), e.querySelectorAll('img').length]));
-      for (const [label, tab, n] of tours) {
-        if (tab !== '0') bad(`شريط اللقطات «${label}» بلا tabindex="0" (لا يُوصل إليه بلوحة المفاتيح)`);
-        if (!label.trim()) bad('شريط لقطات بلا aria-label');
-        if (!n) bad(`شريط اللقطات «${label}» فارغ`);
+      // شريط لقطات الشاشة: إذا كان فيه ما يُمرَّر يُوصل إليه بلوحة المفاتيح وله اسم، وإلا فلا يأخذ محطة فارغة في التنقل.
+      // ولا يوسّع الصفحة (يُفحص في التمرير الأفقي أعلاه)
+      const tours = await p.$$eval('#work .tour', els => els.map(e => [e.getAttribute('aria-label') || '', e.getAttribute('tabindex'),
+        e.querySelectorAll('img').length, e.scrollWidth > e.clientWidth + 1, e.closest('[id]').id]));
+      for (const [label, tab, n, scrolls, id] of tours) {
+        if (scrolls && tab !== '0') bad(`شريط اللقطات في ${id} يُمرَّر لكنه بلا tabindex="0" (لا يُوصل إليه بلوحة المفاتيح)`);
+        if (scrolls && !label.trim()) bad(`شريط اللقطات في ${id} يُمرَّر لكنه بلا aria-label`);
+        if (!scrolls && tab !== null) bad(`شريط اللقطات في ${id} لا يُمرَّر لكنه يأخذ محطة في التنقل (tabindex)`);
+        if (!n) bad(`شريط اللقطات في ${id} فارغ`);
       }
 
       // ترتيب روابط القائمة العلوية يطابق ترتيب الأقسام في الصفحة
@@ -88,8 +91,8 @@ const bad = msg => problems.push(msg);
       const afterArcade = await p.evaluate(() => { const a = document.querySelector('.arcade-band'); const n = a && a.nextElementSibling; return n ? n.id : ''; });
       if (afterArcade !== 'work') bad(`القسم بعد رواق الأنشطة هو «${afterArcade}» لا «work» (الأعمال)`);
 
-      // كل عمل جاهز فيه زر واتساب، وكل سطر في قائمة «قريباً» يقول «قريباً» وفيه رابط واتساب
-      const feats = await p.$$eval('#work .feature', els => els.map(e => [e.id, !!e.querySelector('a[href*="wa.me/"]')]));
+      // كل عمل جاهز (بطاقة كبيرة أو صغيرة) فيه زر واتساب، وكل سطر في قائمة «قريباً» يقول «قريباً» وفيه رابط واتساب
+      const feats = await p.$$eval('#work .feature, #work .work', els => els.map(e => [e.id, !!e.querySelector('a[href*="wa.me/"]')]));
       feats.filter(([, ok]) => !ok).forEach(([id]) => bad(`العمل الجاهز ${id} بلا زر واتساب`));
       const rows = await p.$$eval('#work .soon-item', els => els.map(e => [e.id, e.querySelector('.tag') ? e.querySelector('.tag').textContent.trim() : '', !!e.querySelector('a[href*="wa.me/"]')]));
       for (const [id, tag, ask] of rows) {

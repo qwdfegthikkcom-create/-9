@@ -5,7 +5,7 @@
 قبل الكتابة يفحص قائمة الأعمال وروابط واتساب. إذا وجد خطأ يطبعه ويتوقف دون أن يلمس index.html،
 فيبقى الموقع المنشور سليماً كما هو.
 """
-import base64, html, io, json, pathlib, re, struct, sys, urllib.parse
+import base64, hashlib, html, io, json, pathlib, re, struct, sys, urllib.parse
 
 # تصغير الخطوط يحتاج fontTools وbrotli. بدونهما يتوقف البناء ولا يلمس index.html
 try:
@@ -109,6 +109,13 @@ def head_meta(src):
     for f in ('icon.svg', 'icon-32.png', 'icon-180.png'):
         if not (ICONS_DIR / f).is_file():
             sys.exit('الأيقونة brand/%s غير موجودة. شغّل python3 tools/make_icons.py. لم يتغير index.html.' % f)
+    # الأيقونة مرسومة بلوني --bg و--gold. إذا تغيّر أحدهما في :root ولم تُصنع الأيقونة من جديد يتوقف البناء
+    icon = (ICONS_DIR / 'icon.svg').read_text(encoding='utf-8').lower()
+    for name in ('bg', 'gold'):
+        c = re.search(r'--%s:\s*(#[0-9a-fA-F]{6})\s*;' % name, src)
+        if not c or ('"%s"' % c.group(1).lower()) not in icon:
+            sys.exit('ألوان الأيقونة brand/icon.svg لا تطابق --%s في :root. شغّل python3 tools/make_icons.py، '
+                     'ثم node tools/og.cjs بعد البناء لصورة المشاركة. لم يتغير index.html.' % name)
     svg = 'data:image/svg+xml,' + urllib.parse.quote((ICONS_DIR / 'icon.svg').read_text(encoding='utf-8').strip(), safe=' /:=,.-')
     png = lambda f: 'data:image/png;base64,' + base64.b64encode((ICONS_DIR / f).read_bytes()).decode()
     a = lambda s: html.escape(s, quote=True)
@@ -132,7 +139,8 @@ def head_meta(src):
         lines += [
             '<link rel="canonical" href="%s">' % a(SITE_URL),
             '<meta property="og:url" content="%s">' % a(SITE_URL),
-            '<meta property="og:image" content="%s">' % a(SITE_URL + 'og.jpg?v=1'),
+            # ?v= بصمة قصيرة من محتوى og.jpg: تتغير حين تُرسم الصورة من جديد، فلا يبقى واتساب على الصورة القديمة
+            '<meta property="og:image" content="%s">' % a(SITE_URL + 'og.jpg?v=' + hashlib.sha256((root / 'og.jpg').read_bytes()).hexdigest()[:8]),
             '<meta property="og:image:width" content="1200">',
             '<meta property="og:image:height" content="630">',
         ]
@@ -156,13 +164,15 @@ KINDS = {'menu', 'site', 'video'}
 STATUSES = {'ready', 'soon'}
 LINK_TEXT = {'menu': 'افتح المنيو', 'site': 'افتح الموقع', 'video': 'شاهد الفيديو'}
 IMAGE_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png'}
-MAX_IMAGE = 400 * 1024
+# صورة كل عمل حتى 60KB. tools/add_work.py يضغطها تلقائياً إلى 50KB أو أقل
+MAX_IMAGE = 60 * 1024
 # لقطات الشاشة الحقيقية تحت العمل الجاهز (الحقل screens): حتى 4 لقطات، كل واحدة webp أو jpg وأقل من 60KB
 SCREEN_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
 MAX_SCREENS = 4
 MAX_SCREEN = 60 * 1024
-# مجموع صور الأعمال المضمّنة في الصفحة (صورة كل عمل جاهز ولقطاته). إذا تجاوزه يتوقف البناء، حتى لا يثقل الموقع على الهاتف
-IMAGES_BUDGET = 300 * 1024
+# مجموع صور الأعمال المضمّنة في الصفحة (صورة كل عمل جاهز ولقطاته). إذا تجاوزه يتوقف البناء، حتى لا يثقل الموقع على الهاتف.
+# 700KB تكفي صور الأعمال العشرة كلها جاهزةً (نحو 45 إلى 50KB لكل صورة) مع اللقطات الحالية، ويبقى نحو 100KB للقطات جديدة
+IMAGES_BUDGET = 700 * 1024
 FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'note', 'link', 'link_text', 'image', 'image_alt',
           'featured', 'demo', 'screens'}
 BANNED = ['العقد']  # كلمات لا تُكتب في النصوص التعريفية (من قواعد CLAUDE.md)
@@ -237,7 +247,7 @@ def validate(works):
             elif p.suffix.lower() not in IMAGE_TYPES:
                 errors.append('%s: نوع الصورة غير مدعوم (webp أو jpg أو png)' % where)
             elif p.stat().st_size > MAX_IMAGE:
-                errors.append('%s: الصورة أكبر من %d KB، صغّرها' % (where, MAX_IMAGE // 1024))
+                errors.append('%s: الصورة أكبر من %d KB. أضفها بـ tools/add_work.py --image فيضغطها تلقائياً' % (where, MAX_IMAGE // 1024))
             if not (isinstance(w.get('image_alt'), str) and w['image_alt'].strip()):
                 errors.append('%s: image_alt مطلوب مع الصورة (وصف قصير لما فيها)' % where)
         if 'featured' in w and not isinstance(w['featured'], bool):
@@ -353,9 +363,13 @@ def tour(w, indent):
     demo = w.get('demo', True)
     label = '%s حقيقية من %s' % ('لقطة' if one else 'لقطات', 'النموذج' if demo else 'العمل')
     name = '%s من %s%s' % ('لقطة' if one else 'لقطات', 'نموذج ' if demo else '', plain_title(w))
+    # لقطة واحدة لا تحتاج تمريراً، فلا تأخذ محطة في التنقل بلوحة المفاتيح. وللقطات الأكثر يزيل السكربت tabindex
+    # إذا اتسعت الشاشة لها كلها، ويرجعه إذا ضاقت
+    box = ('<div class="tour">' if one else
+           '<div class="tour" tabindex="0" role="region" aria-label="%s">' % html.escape(name))
     return [
         '%s<p class="tour-label">%s</p>' % (indent, label),
-        '%s<div class="tour" tabindex="0" role="region" aria-label="%s">' % (indent, html.escape(name)),
+        indent + box,
         '%s  <ul>' % indent,
     ] + items + ['%s  </ul>' % indent, '%s</div>' % indent]
 
@@ -396,6 +410,12 @@ def tag(w):
             else '<span class="tag">قريباً</span>')
 
 
+def want_link(w, cls):
+    """زر واتساب تحت كل عمل جاهز (كبيراً أو صغيراً): «أريد منيو مثل هذا» برسالة تذكر اسم العمل."""
+    text, want = WANT[w['kind']]
+    return wa_link(w, cls, text, 'مرحباً، رأيت نموذج «%s» في موقع واجهة، %s' % (plain_title(w), want))
+
+
 def feature(w):
     points = ''.join('\n              <li>%s</li>' % t(p) for p in w.get('points', []))
     lines = [
@@ -411,9 +431,8 @@ def feature(w):
     if w.get('note'):
         lines.append('            <p class="feature-note">%s</p>' % t(w['note']))
     # زر فتح العمل (إن وُجد رابط)، ثم زر واتساب برسالة جاهزة تذكر اسم العمل
-    text, want = WANT[w['kind']]
     buttons = [link(w, 'btn btn-line')] if w.get('link') else []
-    buttons.append(wa_link(w, 'btn', text, 'مرحباً، رأيت نموذج «%s» في موقع واجهة، %s' % (plain_title(w), want)))
+    buttons.append(want_link(w, 'btn'))
     lines.append('            <div class="feature-actions">%s\n            </div>' % ''.join('\n              ' + b for b in buttons))
     lines.append('          </div>')
     # اللقطات في شريط بعرض البطاقة كله تحت الصورة والنص، فلا تتمدد صورة العمل على الحاسوب
@@ -435,8 +454,10 @@ def card(w):
     if w.get('note'):
         lines.append('              <p class="feature-note">%s</p>' % t(w['note']))
     lines += tour(w, '              ')
-    if w.get('link'):
-        lines.append('              %s' % link(w, 'work-link'))
+    # رابط فتح العمل (إن وُجد)، ثم رابط واتساب، كما في البطاقة الكبيرة لكن بحجم البطاقة الصغيرة
+    links = [link(w, 'work-link')] if w.get('link') else []
+    links.append(want_link(w, 'work-link'))
+    lines.append('              <p class="work-actions">%s\n              </p>' % ''.join('\n                ' + x for x in links))
     return '\n'.join(lines + ['            </div>', '          </li>'])
 
 
@@ -476,7 +497,7 @@ def main():
     total = sum((root / f).stat().st_size for f in shown)
     if total > IMAGES_BUDGET:
         sys.exit('صور الأعمال الجاهزة ولقطاتها مجموعها %d KB، والحد %d KB حتى يبقى الموقع خفيفاً على الهاتف.\n'
-                 'صغّر بعضها أو احذف لقطة (screens). لم يتغير index.html.' % (total // 1024, IMAGES_BUDGET // 1024))
+                 'احذف لقطة (screens) أو أكثر بـ tools/add_work.py --screen أو --no-screens. لم يتغير index.html.' % (total // 1024, IMAGES_BUDGET // 1024))
 
     src = (root / 'src' / 'page.src.html').read_text(encoding='utf-8')
     for marker in ('/*FONTS*/', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):

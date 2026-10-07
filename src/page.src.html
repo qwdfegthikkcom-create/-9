@@ -244,7 +244,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .work-body { padding: 1.15rem 1.25rem 1.35rem; display: grid; gap: 0.45rem; align-content: start; justify-items: start; }
 .work h3 { font-size: 1.2rem; }
 .work p { color: var(--muted); font-size: 0.96rem; line-height: 1.8; }
-.work-link { font-weight: 600; font-size: 0.96rem; margin-top: 0.2rem; }
+.work-link { font-weight: 600; font-size: 0.96rem; }
+/* رابط فتح العمل ورابط واتساب في البطاقة الصغيرة، ينزل الثاني لسطر جديد إذا ضاق المكان */
+.work-actions { display: flex; flex-wrap: wrap; gap: 0.2rem 1.25rem; margin-top: 0.2rem; }
 
 /* قائمة «قريباً»: كل عمل قيد البناء سطر مختصر بأيقونة، بلا صورة، حتى يصير جاهزاً فيظهر بطاقة كاملة */
 .soon { display: grid; gap: 1rem; }
@@ -295,6 +297,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .screen { transition: transform 0.5s var(--ease); }
 .work:hover .screen, .feature:hover .screen { transform: translateY(-4px) scale(1.05); }
 .feature .thumb { aspect-ratio: auto; min-height: 15rem; height: 100%; border-bottom: 0; border-inline-end: 1px solid var(--gold-soft); }
+/* على الحاسوب يطول عمود النص فيطول عمود الصورة معه. contain يُظهر الصورة كلها في وسطه بدل قصّ الهاتفين،
+   وعلى الهاتف الصندوق بنسبة الصورة نفسها 16:10 فلا فرق */
+.feature .thumb img { object-fit: contain; }
 /* وسم «نموذج عرض» فوق كل صورة حقيقية لعمل. يضعه build.py، إلا لعمل فيه demo: false (لعميل حقيقي فقط).
    z-index يبقيه فوق الصورة حين تكبر عند المرور عليها */
 .thumb { position: relative; }
@@ -321,6 +326,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .feature .tour ul, .tour ul { display: flex; gap: 0.75rem; list-style: none; padding: 0; }
 /* اللقطة التالية تظهر طرفها على الهاتف، فيُفهم أن الشريط يُسحب */
 .tour li { flex: 0 0 min(82%, 17rem); scroll-snap-align: start; }
+/* على الشاشات القصيرة تصغر اللقطة حتى يظهر الشريط كله بين الشريط العلوي وزر واتساب الثابت (14rem تقريباً)،
+   بنسبة اللقطة نفسها 540×1107 */
+.tour li { flex-basis: min(82%, 17rem, max(9rem, calc((100vh - 14rem) * 540 / 1107))); }
+.tour li { flex-basis: min(82%, 17rem, max(9rem, calc((100svh - 14rem) * 540 / 1107))); }
 /* هامشان تلقائيان: اللقطات في الوسط إذا اتسع المكان لها كلها، ومن البداية إذا لم يتسع */
 .tour li:first-child { margin-inline-start: auto; }
 .tour li:last-child { margin-inline-end: auto; }
@@ -398,8 +407,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .foot-nav a:hover { color: var(--gold); }
 
 /* زر واتساب الثابت */
+/* display: block لا flex، حتى يبقى «راسلني على واتساب» سطراً واحداً بمسافة عادية بين الكلمات */
 .float {
-  position: fixed; z-index: 15;
+  position: fixed; z-index: 15; display: block;
   inset-inline-end: 1rem; bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
   box-shadow: 0 0.4rem 1.4rem rgba(0, 0, 0, 0.45);
 }
@@ -419,6 +429,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .arch { animation-delay: 0.15s; }
 .js .reveal { opacity: 0.4; transform: translateY(1.4rem); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); }
 .js .reveal.in { opacity: 1; transform: none; }
+/* رابط مباشر لعمل (#work-...): يظهر العمل في مكانه فوراً، وإلا تحرّكه الحركة بعد الوصول فيختفي أعلاه تحت الشريط العلوي.
+   قاعدتان لأن المتصفح القديم يتجاهل القاعدة التي فيها :has كلها */
+.js .reveal:target { opacity: 1; transform: none; transition: none; }
+.js .reveal:has(:target) { opacity: 1; transform: none; transition: none; }
 
 @media (min-width: 60rem) { .nav .nav-cta { display: inline-flex; margin-inline-start: 0.75rem; padding: 0.35rem 1.1rem; font-size: 0.95rem; color: var(--bg); } .nav .nav-cta:hover { color: var(--gold); } }
 @media (max-width: 52rem) {
@@ -451,6 +465,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* روابط القائمة الخمسة تظهر كاملة على الهواتف الضيقة: نقلّل الفراغ بينها ثم الخط قليلاً */
 @media (max-width: 25rem) { .nav { --nav-pad: 0.45rem; gap: 0; } }
 @media (max-width: 22rem) { .nav { --nav-pad: 0.4rem; } .nav a { font-size: 0.9rem; padding-block: 0.55rem; } }
+/* تحت 400 بكسل يظهر الزر الثابت بكلمة «واتساب» فقط حتى لا يغطي الأعمال، ويبقى «راسلني على واتساب» كاملاً لقارئ الشاشة */
+@media (max-width: 24.9375rem) {
+  .float .float-more {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+}
 /* بلا جافاسكربت لا تعمل أزرار التصفية والنسخ، فلا نعرضها، ولا الزر الثابت الذي لا يختفي حينها */
 @media (scripting: none) { .filters, .copy, .float { display: none; } }
 @media (prefers-reduced-motion: reduce) {
@@ -475,8 +496,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
       <!-- الاسم في الشريط العلوي -->
       <a class="brand" href="#top">
         <span class="brand-mark" aria-hidden="true">و</span>
-        <span class="brand-name">واجهة<span class="star" aria-hidden="true">✦</span><span class="ltr" lang="en">Wajha Studio</span></span>
-        <span class="sr-only">، العودة إلى أعلى الصفحة</span>
+        <span class="brand-name">واجهة<span class="star" aria-hidden="true">✦</span><span class="ltr" lang="en">Wajha Studio</span></span><span class="sr-only"> (العودة إلى أعلى الصفحة)</span>
       </a>
       <nav class="nav" aria-label="أقسام الصفحة">
         <a href="#work">الأعمال</a>
@@ -688,7 +708,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     </div>
   </footer>
 
-  <a class="btn float" href="https://wa.me/9647747800611?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%AE%D8%AF%D9%85%D8%A7%D8%AA%20%D9%88%D8%A7%D8%AC%D9%87%D8%A9." target="_blank" rel="noopener">راسلني على واتساب</a>
+  <a class="btn float" href="https://wa.me/9647747800611?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%AE%D8%AF%D9%85%D8%A7%D8%AA%20%D9%88%D8%A7%D8%AC%D9%87%D8%A9." target="_blank" rel="noopener"><span class="float-more">راسلني على </span>واتساب</a>
 </div>
 
 <script>
@@ -765,6 +785,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     link.addEventListener('click', function () { applyFilter(link.getAttribute('data-filter')); });
   });
 
+  /* شريط اللقطات يأخذ محطة في التنقل بلوحة المفاتيح فقط حين يكون فيه ما يُمرَّر (حسب عرض الشاشة) */
+  var tours = document.querySelectorAll('.tour[role="region"]');
+  function tourStops() {
+    Array.prototype.forEach.call(tours, function (t) {
+      if (t.scrollWidth > t.clientWidth + 1) t.setAttribute('tabindex', '0');
+      else t.removeAttribute('tabindex');
+    });
+  }
+  window.addEventListener('resize', tourStops);
+  tourStops();
+
   if ('IntersectionObserver' in window) {
     /* ظهور الأقسام بهدوء، والبطاقات واحدة بعد الأخرى */
     Array.prototype.forEach.call(document.querySelectorAll('.cards, .works, .steps'), function (group) {
@@ -786,19 +817,20 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     Array.prototype.forEach.call(document.querySelectorAll('.nav a[href^="#"]:not(.btn)'), function (a) {
       links[a.getAttribute('href').slice(1)] = a;
     });
-    /* نراقب أيضاً الواجهة والتواصل (بلا رابط في القائمة)، فيُزال التمييز حين نصل إليهما */
+    /* نراقب أيضاً الواجهة والتواصل (بلا رابط في القائمة)، فيُزال التمييز حين نصل إليهما.
+       نحفظ الأقسام التي في وسط الشاشة الآن، ونميّز أولها في ترتيب الصفحة، فلا يضيع التمييز إذا عاد القارئ للخلف */
+    var order = ['top'].concat(Object.keys(links), ['contact']);
+    var inView = {};
     var spy = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var a = links[entry.target.id];
-        if (entry.isIntersecting) {
-          for (var id in links) links[id].removeAttribute('aria-current');
-          if (a) a.setAttribute('aria-current', 'true');
-        } else if (a) {
-          a.removeAttribute('aria-current');
-        }
-      });
+      entries.forEach(function (entry) { inView[entry.target.id] = entry.isIntersecting; });
+      var current = '';
+      for (var i = 0; i < order.length && !current; i++) if (inView[order[i]]) current = order[i];
+      for (var id in links) {
+        if (id === current) links[id].setAttribute('aria-current', 'true');
+        else links[id].removeAttribute('aria-current');
+      }
     }, { rootMargin: '-45% 0px -50% 0px' });
-    ['top', 'contact'].concat(Object.keys(links)).forEach(function (id) {
+    order.forEach(function (id) {
       var sec = document.getElementById(id);
       if (sec) spy.observe(sec);
     });

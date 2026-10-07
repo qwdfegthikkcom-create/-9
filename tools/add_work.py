@@ -33,7 +33,9 @@
   python3 tools/add_work.py --id cafe-menu --no-demo      # و--demo يرجعه
 
 نفس id لعمل موجود = تعديله (مثلاً سطر «قريباً» يصير بطاقة «نموذج جاهز»)، وid جديد = إضافة.
-الجاهز (ready) يظهر بطاقة كبيرة مع زر واتساب «أريد منيو/موقعاً/فيديو مثل هذا»، و--featured no يجعله بطاقة صغيرة.
+الجاهز (ready) يظهر بطاقة كبيرة مع زر واتساب «أريد منيو/موقعاً/فيديو مثل هذا»، و--featured no يجعله بطاقة صغيرة
+(فيها رابط واتساب نفسه). صورة العمل تُضغط تلقائياً إلى 50KB أو أقل.
+المسارات المحلية في --shot و--image و--screen تُفهم من المجلد الذي تشغّل منه الأمر.
 القادم (soon) يظهر سطراً مختصراً في قائمة «قريباً في الأعمال» مع رابط «اسألني عن مثله»، بلا صورة.
 البيئة: PLAYWRIGHT و CHROMIUM لمسار playwright وكروميوم إذا لم يكونا مثبتين بشكل عادي.
 يحتاج Pillow، وfontTools وbrotli للبناء: pip install pillow fonttools brotli
@@ -47,6 +49,8 @@ TOOLS = ROOT / 'tools'
 # لقطات الشاشة (screens): بعرض 540 وارتفاع شاشة هاتف (نسبة 400×820)، وأقل من 60KB لكل لقطة كما يشترط build.py
 SCREEN_W, SCREEN_H = 540, 1107
 MAX_SCREEN = 60 * 1024
+# صورة العمل الرئيسية: تُضغط حتى 50KB أو أقل (build.py يقبل حتى 60KB)، فتتسع الصفحة لصور الأعمال كلها
+IMAGE_TARGET = 50 * 1024
 PICTURE = ('.png', '.jpg', '.jpeg', '.webp')
 
 
@@ -61,7 +65,9 @@ def run(cmd):
 def shoot(spec, out, desktop, scroll=0):
     """spec: «رابط أو مسار» واختيارياً « >> نص للضغط >> نص آخر»."""
     parts = [x.strip() for x in spec.split('>>')]
-    cmd = ['node', str(TOOLS / 'shoot.cjs'), 'page', parts[0], str(out)]
+    # المسار المحلي يُفهم من المجلد الذي شغّلت منه الأمر (shoot.cjs نفسه يعمل من مجلد المشروع)
+    src = parts[0] if re.match(r'(https?|file):', parts[0], re.I) else str(pathlib.Path(parts[0]).resolve())
+    cmd = ['node', str(TOOLS / 'shoot.cjs'), 'page', src, str(out)]
     if desktop:
         cmd.append('--desktop')
     for c in parts[1:]:
@@ -149,7 +155,16 @@ def make_image(args, wid, tmp):
     im = Image.open(src).convert('RGB')
     if im.width > 1200:
         im = im.resize((1200, round(im.height * 1200 / im.width)))
-    im.save(dst, 'WEBP', quality=80, method=6)
+    # جودة أقل خطوة بعد خطوة حتى تصير الصورة 50KB أو أقل، ثم تصغير الأبعاد إذا لم يكفِ ذلك
+    for q in (80, 70, 60, 50, 40):
+        im.save(dst, 'WEBP', quality=q, method=6)
+        if dst.stat().st_size <= IMAGE_TARGET:
+            break
+    while dst.stat().st_size > IMAGE_TARGET and im.width > 600:
+        im = im.resize((round(im.width * 0.85), round(im.height * 0.85)), Image.LANCZOS)
+        im.save(dst, 'WEBP', quality=40, method=6)
+    if dst.stat().st_size > IMAGE_TARGET:
+        raise RuntimeError('تعذّر ضغط صورة العمل إلى %d KB' % (IMAGE_TARGET // 1024))
     return 'works/images/%s.webp' % wid
 
 
