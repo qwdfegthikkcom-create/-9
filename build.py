@@ -166,6 +166,8 @@ LINK_TEXT = {'menu': 'افتح المنيو', 'site': 'افتح الموقع', '
 IMAGE_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png'}
 # صورة كل عمل حتى 60KB. tools/add_work.py يضغطها تلقائياً إلى 50KB أو أقل
 MAX_IMAGE = 60 * 1024
+# صور assets/ الثابتة في المصدر (مثل إعلان المنيو): حتى 80KB لكل صورة
+MAX_ASSET = 80 * 1024
 # لقطات الشاشة الحقيقية تحت العمل الجاهز (الحقل screens): حتى 4 لقطات، كل واحدة webp أو jpg وأقل من 60KB
 SCREEN_TYPES = {'.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
 MAX_SCREENS = 4
@@ -518,6 +520,16 @@ def main():
               .replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
               .replace('<!--WORKS-->', ''.join('\n' + card(w) for w in cards) + ('\n        ' if cards else ''))
               .replace('<!--SOON-->', ''.join('\n' + row(w) for w in soon) + ('\n          ' if soon else '')))
+
+    # صور ثابتة في المصدر (مثل إعلان المنيو): كل src="assets/..." يُضمَّن في الصفحة، حتى يبقى ملفاً واحداً
+    def embed(m):
+        p = root / m.group(1)
+        if not p.is_file() or p.suffix.lower() not in IMAGE_TYPES:
+            sys.exit('الصورة %s غير موجودة أو نوعها غير مدعوم. لم يتغير index.html.' % m.group(1))
+        if p.stat().st_size > MAX_ASSET:
+            sys.exit('الصورة %s أكبر من %d KB. صغّرها ثم أعد البناء. لم يتغير index.html.' % (m.group(1), MAX_ASSET // 1024))
+        return 'src="%s"' % data_uri(p, IMAGE_TYPES)
+    src = re.sub(r'src="(assets/[^"]+)"', embed, src)
 
     t_end = src.index('</title>') + len('</title>')
     s_end = src.index('</style>') + len('</style>')

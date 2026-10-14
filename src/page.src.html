@@ -251,8 +251,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .work-actions { display: flex; flex-wrap: wrap; gap: 0.2rem 1.25rem; margin-top: 0.2rem; }
 
 /* «روابط المنيوهات» أول قسم الأعمال: كل منيو جاهز له رابط سطر واحد يُضغط كله */
-.quick { display: grid; gap: 0.8rem; margin-bottom: 1.6rem; }
-.quick:not(:has(.quick-list > li)) { display: none; }
+.quick { display: grid; gap: 1.4rem; margin-bottom: 1.6rem; align-items: start; }
+.quick-links { display: grid; gap: 0.8rem; min-width: 0; }
+.quick-links:not(:has(.quick-list > li)) { display: none; }
+/* إعلان المنيو الرقمي: صورة طولية بجانب الروابط على الحاسوب، وتحتها على الهاتف */
+.poster { margin: 0; justify-self: center; width: min(100%, 24rem); }
+.poster img { display: block; width: 100%; height: auto; border: 1px solid var(--gold-soft); border-radius: var(--radius); }
+@media (min-width: 48rem) { .quick { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); } .poster { width: 100%; } }
 .quick-title { font-size: 1.35rem; display: flex; align-items: center; gap: 0.9rem; }
 .quick-title::after { content: ""; flex: 1; height: 1px; background: var(--gold-soft); }
 .quick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 0.6rem; }
@@ -558,10 +563,16 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         </div>
 
         <!-- روابط المنيوهات الجاهزة: يولّدها build.py من كل منيو جاهز له link في works/works.json،
-             حتى يفتحها الزائر أول ما يصل إلى الأعمال. تختفي وحدها إذا لم يبقَ منيو له رابط. -->
+             حتى يفتحها الزائر أول ما يصل إلى الأعمال. تختفي وحدها إذا لم يبقَ منيو له رابط.
+             وبجانبها إعلان المنيو الرقمي (assets/menu-poster.webp)، يضمّنه build.py في الصفحة. -->
         <div class="quick reveal">
-          <h3 class="quick-title" id="quick-title">روابط المنيوهات</h3>
-          <ul class="quick-list" aria-labelledby="quick-title"><!--LINKS--></ul>
+          <div class="quick-links">
+            <h3 class="quick-title" id="quick-title">روابط المنيوهات</h3>
+            <ul class="quick-list" aria-labelledby="quick-title"><!--LINKS--></ul>
+          </div>
+          <figure class="poster">
+            <img src="assets/menu-poster.webp" alt="إعلان واجهة: منيو رقمي لمطعمك، الزبون يطلب من موبايله بـ QR. يد تمسك هاتفاً عليه منيو مطعم، ورقم واتساب 0774 780 0611" width="800" height="995" decoding="async">
+          </figure>
         </div>
 
         <!-- أزرار التصفية: تُظهر الأعمال حسب النوع. كل عمل يحمل data-kind بقيمة menu أو site أو video -->
