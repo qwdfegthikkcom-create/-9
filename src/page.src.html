@@ -219,6 +219,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   background: var(--bg-raised); border: 1px solid var(--gold); border-radius: var(--radius); overflow: hidden;
 }
+/* عمل بلا صورة: النص بعرض البطاقة كله */
+.feature:not(:has(> .thumb)) { grid-template-columns: minmax(0, 1fr); }
 .feature-body { padding: clamp(1.4rem, 4vw, 2.25rem); display: grid; gap: 0.9rem; align-content: center; justify-items: start; min-width: 0; }
 .feature h3 { font-size: 1.75rem; }
 .feature ul { list-style: disc; padding-inline-start: 1.2rem; color: var(--muted); display: grid; gap: 0.15rem; }
@@ -314,8 +316,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* الصورة الحقيقية يضعها build.py من الحقل image في works/works.json، فأضفها بـ tools/add_work.py لا هنا */
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.7s var(--ease); }
 .work:hover .thumb img, .feature:hover .thumb img { transform: scale(1.06); }
-.screen { transition: transform 0.5s var(--ease); }
-.work:hover .screen, .feature:hover .screen { transform: translateY(-4px) scale(1.05); }
 .feature .thumb { aspect-ratio: auto; min-height: 15rem; height: 100%; border-bottom: 0; border-inline-end: 1px solid var(--gold-soft); }
 /* على الحاسوب يطول عمود النص فيطول عمود الصورة معه. contain يُظهر الصورة كلها في وسطه بدل قصّ الهاتفين،
    وعلى الهاتف الصندوق بنسبة الصورة نفسها 16:10 فلا فرق */
@@ -354,18 +354,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .tour li:first-child { margin-inline-start: auto; }
 .tour li:last-child { margin-inline-end: auto; }
 .tour img { display: block; width: 100%; height: auto; border: 1px solid var(--gold-soft); border-radius: 12px; }
-.screen { border: 1.5px solid var(--gold); background: var(--bg-raised); display: grid; gap: 7%; padding: 5%; }
-.screen i { display: block; border-radius: 2px; background: var(--gold-soft); min-height: 0; }
-.screen i.g { background: var(--gold); }
-.screen.web { width: 58%; aspect-ratio: 16 / 10; border-radius: 5px; grid-template: "h h" 1fr "a b" 3fr "c b" 1fr / 1.3fr 1fr; }
-.screen.web i:nth-child(1) { grid-area: h; }
-.screen.web i:nth-child(2) { grid-area: a; }
-.screen.web i:nth-child(3) { grid-area: b; }
-.screen.web i:nth-child(4) { grid-area: c; }
-.screen.phone { width: 25%; aspect-ratio: 9 / 16; border-radius: 9px; padding: 9%; grid-template-rows: 1.2fr 2fr 2fr 2fr 1.2fr; }
-.feature .screen.phone { width: min(34%, 8.5rem); }
-.screen.video { width: 58%; aspect-ratio: 16 / 9; border-radius: 5px; place-items: center; }
-.screen.video i { width: 18%; aspect-ratio: 1; background: var(--gold); clip-path: polygon(15% 0, 100% 50%, 15% 100%); border-radius: 0; }
 
 /* طريقة العمل */
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr)); gap: 1.5rem 1.25rem; counter-reset: step; }
@@ -469,7 +457,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .about { grid-template-columns: minmax(0, 1fr); }
   .feature { grid-template-columns: minmax(0, 1fr); }
   .feature .thumb { min-height: 0; height: auto; aspect-ratio: 16 / 10; border-inline-end: 0; border-bottom: 1px solid var(--gold-soft); }
-  .feature .screen.phone { width: 25%; }
 }
 /* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
 @media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
@@ -498,8 +485,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   html { scroll-behavior: auto; }
   .hero-text > *, .arch, .arch-letter, .pop, .faq details[open] p { animation: none; }
   .js .float { transition: none; transform: none; }
-  .screen, .thumb img, .arcade a { transition: none; }
-  .work:hover .screen, .feature:hover .screen, .work:hover .thumb img, .feature:hover .thumb img, .arcade a:hover { transform: none; }
+  .thumb img, .arcade a { transition: none; }
+  .work:hover .thumb img, .feature:hover .thumb img, .arcade a:hover { transform: none; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   .btn, .card, .work, .quick-link { transition: none; }
   .btn:hover, .card:hover, .work:hover, .quick-link:hover { transform: none; }

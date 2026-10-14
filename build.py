@@ -191,13 +191,6 @@ ICONS = {
     'video': '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>',
 }
 
-# مصغّرات مرسومة تُستخدم حين لا توجد صورة حقيقية لعمل جاهز
-PLACEHOLDER = {
-    'site': '<div class="screen web"><i class="g"></i><i></i><i></i><i></i></div>',
-    'menu': '<div class="screen phone"><i class="g"></i><i></i><i></i><i></i><i class="g"></i></div>',
-    'video': '<div class="screen video"><i></i></div>',
-}
-
 
 def validate(works):
     errors = []
@@ -339,7 +332,8 @@ def data_uri(p, types):
 def thumb(w):
     img = w.get('image')
     if not img:
-        return '<div class="thumb" aria-hidden="true">%s</div>' % PLACEHOLDER[w['kind']]
+        # عمل بلا صورة يظهر نصاً وروابط فقط، بلا مربع صورة ولا رسم بديل
+        return ''
     # وسم «نموذج عرض» فوق كل صورة حقيقية، إلا إذا كان demo: false (لعميل حقيقي فقط)
     badge = '<span class="thumb-badge">نموذج عرض</span>' if w.get('demo', True) else ''
     # الصورة مضمّنة في الصفحة نفسها، فلا فائدة من loading="lazy"
@@ -420,7 +414,7 @@ def feature(w):
     points = ''.join('\n              <li>%s</li>' % t(p) for p in w.get('points', []))
     lines = [
         '        <article class="feature reveal" data-kind="%s" id="work-%s"%s>' % (w['kind'], w['id'], demo_attr(w)),
-        '          %s' % thumb(w),
+    ] + (['          %s' % thumb(w)] if w.get('image') else []) + [
         '          <div class="feature-body">',
         '            %s' % tag(w),
         '            <h3>%s</h3>' % title(w),
@@ -445,7 +439,7 @@ def feature(w):
 def card(w):
     lines = [
         '          <li class="work reveal" data-kind="%s" id="work-%s"%s>' % (w['kind'], w['id'], demo_attr(w)),
-        '            %s' % thumb(w),
+    ] + (['            %s' % thumb(w)] if w.get('image') else []) + [
         '            <div class="work-body">',
         '              %s' % tag(w),
         '              <h3>%s</h3>' % title(w),
