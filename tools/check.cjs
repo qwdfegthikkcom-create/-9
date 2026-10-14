@@ -146,8 +146,17 @@ const bad = msg => problems.push(msg);
       const firstBlock = await p.evaluate(() => { const h = document.querySelector('#work .head'); const n = h && h.nextElementSibling; return n ? n.className : ''; });
       if (want.length && !/\bquick\b/.test(firstBlock)) bad('«روابط المنيوهات» ليست أول شيء بعد عنوان قسم الأعمال');
 
+      // فيديو كل عمل: ملفه موجود بجانب index.html، وله غلاف واسم لقارئ الشاشة، ولا يُحمَّل قبل الضغط
+      const vids = await p.$$eval('#work video', vs => vs.map(v => [v.querySelector('source') ? v.querySelector('source').getAttribute('src') : '', !!v.getAttribute('poster'), (v.getAttribute('aria-label') || '').trim(), v.preload]));
+      for (const [src, poster, label, preload] of vids) {
+        if (!src || !fs.existsSync(path.join(ROOT, src))) bad(`ملف فيديو غير موجود: ${src || '(بلا src)'}`);
+        if (!poster) bad(`فيديو بلا غلاف: ${src}`);
+        if (!label) bad(`فيديو بلا اسم لقارئ الشاشة: ${src}`);
+        if (preload !== 'none') bad(`فيديو يُحمَّل قبل الضغط (preload=${preload}): ${src}`);
+      }
+
       // الروابط
-      const links =await p.$$eval('a[href]', as => as.map(a => [a.getAttribute('href'), a.target, a.rel, a.textContent.trim()]));
+      const links = await p.$$eval('a[href]', as => as.map(a => [a.getAttribute('href'), a.target, a.rel, a.textContent.trim()]));
       const ids = new Set(await p.$$eval('[id]', els => els.map(e => e.id)));
       for (const [href, target, rel, text] of links) {
         if (href.startsWith('#')) { if (href.length > 1 && !ids.has(href.slice(1))) bad(`رابط داخلي لقسم غير موجود: ${href}`); continue; }

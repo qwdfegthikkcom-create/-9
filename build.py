@@ -176,7 +176,10 @@ MAX_SCREEN = 60 * 1024
 # 700KB تكفي صور الأعمال العشرة كلها جاهزةً (نحو 45 إلى 50KB لكل صورة) مع اللقطات الحالية، ويبقى نحو 100KB للقطات جديدة
 IMAGES_BUDGET = 700 * 1024
 FIELDS = {'id', 'kind', 'status', 'title', 'title_en', 'desc', 'points', 'note', 'link', 'link_text', 'image', 'image_alt',
-          'featured', 'demo', 'screens'}
+          'featured', 'demo', 'screens', 'video'}
+# فيديو العمل (الحقل video، لعمل kind: video فقط): ملف mp4 في media/ بجانب index.html. لا يُضمَّن في الصفحة لأنه كبير،
+# ولا يُحمَّل إلا حين يضغط الزائر تشغيل (preload="none"). صورة العمل (image) تصير غلافه قبل التشغيل
+MAX_VIDEO = 10 * 1024 * 1024
 BANNED = ['العقد']  # كلمات لا تُكتب في النصوص التعريفية (من قواعد CLAUDE.md)
 
 # زر واتساب تحت كل عمل جاهز: نص الزر، وما يُكتب في الرسالة بعد اسم العمل
@@ -245,6 +248,17 @@ def validate(works):
                 errors.append('%s: الصورة أكبر من %d KB. أضفها بـ tools/add_work.py --image فيضغطها تلقائياً' % (where, MAX_IMAGE // 1024))
             if not (isinstance(w.get('image_alt'), str) and w['image_alt'].strip()):
                 errors.append('%s: image_alt مطلوب مع الصورة (وصف قصير لما فيها)' % where)
+        vid = w.get('video')
+        if vid is not None:
+            p = root / vid if isinstance(vid, str) else None
+            if w.get('kind') != 'video':
+                errors.append('%s: video لعمل kind: video فقط' % where)
+            if not (isinstance(vid, str) and re.fullmatch(r'media/[a-z0-9-]+\.mp4', vid)) or not p.is_file():
+                errors.append('%s: الفيديو يجب أن يكون ملف mp4 موجوداً في media/، مثل media/wajha-ad.mp4: %s' % (where, vid))
+            elif p.stat().st_size > MAX_VIDEO:
+                errors.append('%s: الفيديو أكبر من %d MB، فيثقل على الهاتف. صغّره ثم أعد البناء' % (where, MAX_VIDEO // 1024 // 1024))
+            if not img:
+                errors.append('%s: الفيديو يحتاج image (غلافه قبل التشغيل) وimage_alt' % where)
         if 'featured' in w and not isinstance(w['featured'], bool):
             errors.append('%s: featured يجب أن يكون true أو false' % where)
         if 'demo' in w and not isinstance(w['demo'], bool):
@@ -338,6 +352,11 @@ def thumb(w):
         return ''
     # وسم «نموذج عرض» فوق كل صورة حقيقية، إلا إذا كان demo: false (لعميل حقيقي فقط)
     badge = '<span class="thumb-badge">نموذج عرض</span>' if w.get('demo', True) else ''
+    if w.get('video'):
+        # الفيديو ملف بجانب الصفحة، لا يُحمَّل قبل الضغط. الصورة غلافه، ووصفها اسمه لقارئ الشاشة
+        return ('<div class="thumb thumb-video">%s<video controls playsinline preload="none" poster="%s" aria-label="%s">'
+                '<source src="%s" type="video/mp4"></video></div>') % (
+            badge, data_uri(root / img, IMAGE_TYPES), html.escape(w['image_alt']), html.escape(w['video']))
     # الصورة مضمّنة في الصفحة نفسها، فلا فائدة من loading="lazy"
     return '<div class="thumb">%s<img src="%s" alt="%s" width="1200" height="750" decoding="async"></div>' % (
         badge, data_uri(root / img, IMAGE_TYPES), html.escape(w['image_alt']))

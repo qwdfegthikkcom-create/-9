@@ -325,6 +325,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* على الحاسوب يطول عمود النص فيطول عمود الصورة معه. contain يُظهر الصورة كلها في وسطه بدل قصّ الهاتفين،
    وعلى الهاتف الصندوق بنسبة الصورة نفسها 16:10 فلا فرق */
 .feature .thumb img { object-fit: contain; }
+/* فيديو العمل: طولي 9:16 بمقاس الستوري، في وسط عمود الصورة على خلفية داكنة، ولا يطول أكثر من الشاشة */
+.thumb-video { background: var(--bg-deep); padding: 1.2rem 0; }
+.thumb-video video { display: block; height: auto; width: auto; max-width: 100%; max-height: min(36rem, 72svh); aspect-ratio: 9 / 16; border-radius: var(--radius); background: #000; }
 /* وسم «نموذج عرض» فوق كل صورة حقيقية لعمل. يضعه build.py، إلا لعمل فيه demo: false (لعميل حقيقي فقط).
    z-index يبقيه فوق الصورة حين تكبر عند المرور عليها */
 .thumb { position: relative; }
@@ -462,6 +465,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .about { grid-template-columns: minmax(0, 1fr); }
   .feature { grid-template-columns: minmax(0, 1fr); }
   .feature .thumb { min-height: 0; height: auto; aspect-ratio: 16 / 10; border-inline-end: 0; border-bottom: 1px solid var(--gold-soft); }
+  .feature .thumb-video { aspect-ratio: auto; }
 }
 /* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
 @media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
