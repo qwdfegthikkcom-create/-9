@@ -470,7 +470,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
 @media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
 /* أسطر «قريباً» عمودين حين يتسع المكان */
+/* عمودان على الشاشة المتوسطة وثلاثة على الحاسوب، حتى لا يبقى سطر وحيد في آخر القائمة القصيرة */
 @media (min-width: 48rem) { .soon-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .soon-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* الخطوات الأربع 2+2 على الحاسوب اللوحي، بدل 3 وخطوة وحيدة تحتها */
 @media (min-width: 40rem) and (max-width: 63.75rem) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 36rem) {
