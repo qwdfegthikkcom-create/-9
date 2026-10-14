@@ -137,8 +137,17 @@ const bad = msg => problems.push(msg);
       }
       await p.$eval('#filter-all', el => el.click());
 
+      // «روابط المنيوهات» أول قسم الأعمال: فيها رابط كل منيو جاهز له link في works.json، بالترتيب نفسه، ولا شيء غيره
+      const works = JSON.parse(fs.readFileSync(path.join(ROOT, 'works', 'works.json'), 'utf8'));
+      const want = works.filter(w => w.status === 'ready' && w.kind === 'menu' && w.link).map(w => w.link);
+      const got = await p.$$eval('#work .quick-link', as => as.map(a => a.getAttribute('href')));
+      if (want.join('\n') !== got.join('\n')) bad(`«روابط المنيوهات» (${got.join('، ') || 'فارغة'}) لا تطابق المنيوهات الجاهزة ذات الرابط في works.json (${want.join('، ') || 'لا شيء'})`);
+      if (want.length && !(await visible('#work .quick'))) bad('«روابط المنيوهات» لا تظهر مع أن فيها روابط');
+      const firstBlock = await p.evaluate(() => { const h = document.querySelector('#work .head'); const n = h && h.nextElementSibling; return n ? n.className : ''; });
+      if (want.length && !/\bquick\b/.test(firstBlock)) bad('«روابط المنيوهات» ليست أول شيء بعد عنوان قسم الأعمال');
+
       // الروابط
-      const links = await p.$$eval('a[href]', as => as.map(a => [a.getAttribute('href'), a.target, a.rel, a.textContent.trim()]));
+      const links =await p.$$eval('a[href]', as => as.map(a => [a.getAttribute('href'), a.target, a.rel, a.textContent.trim()]));
       const ids = new Set(await p.$$eval('[id]', els => els.map(e => e.id)));
       for (const [href, target, rel, text] of links) {
         if (href.startsWith('#')) { if (href.length > 1 && !ids.has(href.slice(1))) bad(`رابط داخلي لقسم غير موجود: ${href}`); continue; }

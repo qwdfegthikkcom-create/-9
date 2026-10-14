@@ -476,6 +476,20 @@ def row(w):
     ])
 
 
+def quick(w):
+    """رابط منيو جاهز في «روابط المنيوهات» أول قسم الأعمال: أيقونة، والاسم، ووسم «نموذج عرض»، و«افتح». يُفتح في نافذة جديدة."""
+    badge = '<span class="quick-tag">نموذج عرض</span>' if w.get('demo', True) else ''
+    return '\n'.join([
+        '            <li>',
+        '              <a class="quick-link" href="%s" target="_blank" rel="noopener">' % html.escape(w['link']),
+        '                <span class="soon-icon" aria-hidden="true">%s</span>' % ICONS[w['kind']],
+        '                <span class="quick-text"><span class="quick-name">%s</span>%s</span>' % (title(w), badge),
+        '                <span class="quick-open" aria-hidden="true">افتح</span>%s' % NEW_WINDOW,
+        '              </a>',
+        '            </li>',
+    ])
+
+
 def main():
     works_path = root / 'works' / 'works.json'
     try:
@@ -491,6 +505,8 @@ def main():
     featured = [w for w in ready if w.get('featured', True)]
     cards = [w for w in ready if not w.get('featured', True)]
     soon = [w for w in works if w['status'] == 'soon']
+    # روابط المنيوهات الجاهزة التي لها رابط، بترتيبها في works.json، تظهر أول قسم الأعمال
+    quick_menus = [w for w in ready if w['kind'] == 'menu' and w.get('link')]
 
     # حجم الصور المضمّنة: صورة كل عمل جاهز ولقطاته (القادم لا تظهر له صور)
     shown = [w['image'] for w in ready if w.get('image')] + [sc['image'] for w in ready for sc in w.get('screens', [])]
@@ -500,11 +516,12 @@ def main():
                  'احذف لقطة (screens) أو أكثر بـ tools/add_work.py --screen أو --no-screens. لم يتغير index.html.' % (total // 1024, IMAGES_BUDGET // 1024))
 
     src = (root / 'src' / 'page.src.html').read_text(encoding='utf-8')
-    for marker in ('/*FONTS*/', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):
+    for marker in ('/*FONTS*/', '<!--LINKS-->', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):
         if src.count(marker) != 1:
             sys.exit('العلامة %s يجب أن تظهر مرة واحدة بالضبط في src/page.src.html. لم يتغير index.html.' % marker)
     # قائمة فارغة تُترك بلا مسافات، حتى يخفيها CSS (:empty). الخطوط تُضاف في الآخر، بعد معرفة الحروف المستعملة
-    src = (src.replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
+    src = (src.replace('<!--LINKS-->', ''.join('\n' + quick(w) for w in quick_menus) + ('\n          ' if quick_menus else ''))
+              .replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
               .replace('<!--WORKS-->', ''.join('\n' + card(w) for w in cards) + ('\n        ' if cards else ''))
               .replace('<!--SOON-->', ''.join('\n' + row(w) for w in soon) + ('\n          ' if soon else '')))
 

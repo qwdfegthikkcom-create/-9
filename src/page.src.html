@@ -248,6 +248,26 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* رابط فتح العمل ورابط واتساب في البطاقة الصغيرة، ينزل الثاني لسطر جديد إذا ضاق المكان */
 .work-actions { display: flex; flex-wrap: wrap; gap: 0.2rem 1.25rem; margin-top: 0.2rem; }
 
+/* «روابط المنيوهات» أول قسم الأعمال: كل منيو جاهز له رابط سطر واحد يُضغط كله */
+.quick { display: grid; gap: 0.8rem; margin-bottom: 1.6rem; }
+.quick:not(:has(.quick-list > li)) { display: none; }
+.quick-title { font-size: 1.35rem; display: flex; align-items: center; gap: 0.9rem; }
+.quick-title::after { content: ""; flex: 1; height: 1px; background: var(--gold-soft); }
+.quick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 0.6rem; }
+.quick-link {
+  display: flex; align-items: center; gap: 0.75rem; min-height: 3.6rem; padding: 0.7rem 1rem;
+  background: var(--bg-raised); border: 1px solid var(--gold); border-radius: var(--radius);
+  color: var(--ink); text-decoration: none;
+  transition: background-color 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.quick-link:hover { background: #42182a; transform: translateY(-2px); }
+/* الاسم وتحته وسم «نموذج عرض»، حتى يتسع الاسم سطراً واحداً على الهاتف */
+.quick-text { flex: 1; min-width: 0; display: grid; justify-items: start; gap: 0.2rem; }
+.quick-name { font-family: var(--font-display); font-weight: 600; font-size: 1.08rem; line-height: 1.5; }
+.quick-tag { font-size: 0.78rem; color: var(--muted); border: 1px solid var(--gold-soft); border-radius: 999px; padding: 0.05rem 0.55rem; white-space: nowrap; }
+.quick-open { color: var(--gold); font-weight: 600; white-space: nowrap; }
+.quick-open::after { content: " ←"; }
+
 /* قائمة «قريباً»: كل عمل قيد البناء سطر مختصر بأيقونة، بلا صورة، حتى يصير جاهزاً فيظهر بطاقة كاملة */
 .soon { display: grid; gap: 1rem; }
 /* العنوان يختفي حين لا يبقى سطر ظاهر بعد التصفية */
@@ -481,8 +501,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .screen, .thumb img, .arcade a { transition: none; }
   .work:hover .screen, .feature:hover .screen, .work:hover .thumb img, .feature:hover .thumb img, .arcade a:hover { transform: none; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
-  .btn, .card, .work { transition: none; }
-  .btn:hover, .card:hover, .work:hover { transform: none; }
+  .btn, .card, .work, .quick-link { transition: none; }
+  .btn:hover, .card:hover, .work:hover, .quick-link:hover { transform: none; }
   .nav a:not(.btn)::after, .faq summary::after { transition: none; }
 }
 </style>
@@ -548,6 +568,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         <div class="head reveal">
           <h2 id="work-title">الأعمال</h2>
           <p>نماذج عرض أبنيها لأوضّح شكل العمل: بعضها بأسماء افتراضية، وبعضها فكرة أعددتها لأعرضها على مطعم قائم. الجاهز منها موصوف أدناه، والمعلَّم «قريباً» قيد البناء.</p>
+        </div>
+
+        <!-- روابط المنيوهات الجاهزة: يولّدها build.py من كل منيو جاهز له link في works/works.json،
+             حتى يفتحها الزائر أول ما يصل إلى الأعمال. تختفي وحدها إذا لم يبقَ منيو له رابط. -->
+        <div class="quick reveal">
+          <h3 class="quick-title" id="quick-title">روابط المنيوهات</h3>
+          <ul class="quick-list" aria-labelledby="quick-title"><!--LINKS--></ul>
         </div>
 
         <!-- أزرار التصفية: تُظهر الأعمال حسب النوع. كل عمل يحمل data-kind بقيمة menu أو site أو video -->
