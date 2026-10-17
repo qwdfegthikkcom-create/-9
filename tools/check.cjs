@@ -32,6 +32,15 @@ const bad = msg => problems.push(msg);
       const over = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       if (over > 1) bad(`[${width}px] الصفحة أعرض من الشاشة بـ ${over}px (تمرير أفقي)`);
 
+      // رمز QR واتساب في قسم التواصل: ظاهر على الحاسوب ومخفي على الهاتف، وزر «شارك الموقع» ظاهر بالسكربت
+      const qr = await p.$eval('.wa-qr', el => { const s = el.querySelector('svg'); return { shown: getComputedStyle(el).display !== 'none', svg: !!s, label: s ? s.getAttribute('aria-label') || '' : '' }; }).catch(() => null);
+      if (!qr || !qr.svg) bad(`[${width}px] رمز QR واتساب غير موجود في قسم التواصل`);
+      else {
+        if (qr.shown !== !mobile) bad(`[${width}px] رمز QR واتساب ${mobile ? 'ظاهر على الهاتف' : 'مخفي على الحاسوب'}`);
+        if (!qr.label.replace(/\s/g, '').includes(`+${WA}`)) bad(`[${width}px] اسم رمز QR لا يذكر رقم واتساب`);
+      }
+      if (await p.$eval('#share-site', el => el.hidden).catch(() => true)) bad(`[${width}px] زر «شارك الموقع» لا يظهر`);
+
       if (width !== 400) { await ctx.close(); continue; }
       try {
 

@@ -11,9 +11,10 @@ import base64, hashlib, html, io, json, pathlib, re, struct, sys, urllib.parse
 try:
     import brotli  # noqa: F401  (يستخدمه fontTools لكتابة woff2)
     from fontTools import subset as font_subset
+    import segno  # رمز QR لواتساب في قسم التواصل، يُصنع من WA_NUMBER نفسه
 except ImportError:
-    sys.exit('البناء يحتاج مكتبتي fontTools وbrotli لتصغير الخطوط المضمّنة. ثبّتهما بالأمر:\n'
-             '  pip install fonttools brotli\n'
+    sys.exit('البناء يحتاج مكتبات fontTools وbrotli (لتصغير الخطوط) وsegno (لرمز QR واتساب). ثبّتها بالأمر:\n'
+             '  pip install fonttools brotli segno\n'
              'ثم أعد python3 build.py. لم يتغير index.html.')
 
 root = pathlib.Path(__file__).resolve().parent
@@ -505,6 +506,21 @@ def quick(w):
     ])
 
 
+def wa_qr():
+    """رمز QR يفتح محادثة واتساب (https://wa.me/WA_NUMBER) لزائر الحاسوب، يمسحه بهاتفه.
+    يُصنع من WA_NUMBER عند كل بناء، فلا يختلف أبداً عن الرقم في الروابط. ألوانه داكن على فاتح حتى تقرأه كل الكاميرات."""
+    qr = segno.make('https://wa.me/%s' % WA_NUMBER, error='m', micro=False)
+    svg = qr.svg_inline(scale=1, border=2, dark='#2a0d14', light='#f4e9d6', omitsize=True)
+    label = 'رمز QR يفتح محادثة واتساب مع %s' % visible_number()
+    return svg.replace('<svg ', '<svg role="img" aria-label="%s" ' % label, 1)
+
+
+def visible_number():
+    """+9647747800611 مكتوباً كما يظهر في الصفحة: +964 774 780 0611"""
+    n = WA_NUMBER
+    return '+%s %s %s %s' % (n[:3], n[3:6], n[6:9], n[9:])
+
+
 def main():
     works_path = root / 'works' / 'works.json'
     try:
@@ -531,11 +547,12 @@ def main():
                  'احذف لقطة (screens) أو أكثر بـ tools/add_work.py --screen أو --no-screens. لم يتغير index.html.' % (total // 1024, IMAGES_BUDGET // 1024))
 
     src = (root / 'src' / 'page.src.html').read_text(encoding='utf-8')
-    for marker in ('/*FONTS*/', '<!--LINKS-->', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->'):
+    for marker in ('/*FONTS*/', '<!--LINKS-->', '<!--FEATURED-->', '<!--WORKS-->', '<!--SOON-->', '<!--WAQR-->'):
         if src.count(marker) != 1:
             sys.exit('العلامة %s يجب أن تظهر مرة واحدة بالضبط في src/page.src.html. لم يتغير index.html.' % marker)
     # قائمة فارغة تُترك بلا مسافات، حتى يخفيها CSS (:empty). الخطوط تُضاف في الآخر، بعد معرفة الحروف المستعملة
-    src = (src.replace('<!--LINKS-->', ''.join('\n' + quick(w) for w in quick_menus) + ('\n          ' if quick_menus else ''))
+    src = (src.replace('<!--WAQR-->', wa_qr())
+              .replace('<!--LINKS-->', ''.join('\n' + quick(w) for w in quick_menus) + ('\n          ' if quick_menus else ''))
               .replace('<!--FEATURED-->', '\n\n'.join(feature(w) for w in featured))
               .replace('<!--WORKS-->', ''.join('\n' + card(w) for w in cards) + ('\n        ' if cards else ''))
               .replace('<!--SOON-->', ''.join('\n' + row(w) for w in soon) + ('\n          ' if soon else '')))

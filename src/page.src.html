@@ -194,6 +194,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* الخدمات */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 1.1rem; }
+/* بطاقات الخدمات بلا بطاقة وحيدة في آخر سطر: عمودان على الشاشة المتوسطة (والأخيرة الفردية بعرضهما)،
+   وعلى الحاسوب ست خانات: ثلاث بطاقات في السطر الأول، واثنتان أعرض في الثاني إذا كانت خمساً */
+@media (min-width: 40rem) {
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cards > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (min-width: 64rem) {
+  .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .cards > li, .cards > li:last-child:nth-child(odd) { grid-column: span 2; }
+  .cards:has(> li:nth-child(5):last-child) > li:nth-child(n+4) { grid-column: span 3; }
+}
 .card {
   min-width: 0; display: grid; gap: 0.6rem; align-content: start;
   background: var(--bg-raised); border: 1px solid var(--gold-soft); border-radius: var(--radius);
@@ -252,6 +263,18 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* «روابط المنيوهات» أول قسم الأعمال: كل منيو جاهز له رابط سطر واحد يُضغط كله */
 .quick { display: grid; gap: 1.4rem; margin-bottom: 1.6rem; align-items: start; }
+.quick-side { display: grid; gap: 1.6rem; min-width: 0; }
+/* كيف يعمل المنيو الرقمي: ثلاث خطوات مرقّمة داخل أقواس صغيرة */
+.how { display: grid; gap: 0.8rem; }
+.how-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+.how-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.85rem; align-items: start; }
+.how-n {
+  width: 2.4rem; height: 2.9rem; display: grid; place-items: center; padding-top: 0.25rem;
+  border: 1px solid var(--gold-soft); border-radius: var(--arch);
+  font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; color: var(--gold);
+}
+.how-list h4 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.08rem; line-height: 1.5; }
+.how-list p { color: var(--muted); font-size: 0.95rem; line-height: 1.75; }
 .quick-links { display: grid; gap: 0.8rem; min-width: 0; }
 .quick-links:not(:has(.quick-list > li)) { display: none; }
 /* إعلان المنيو الرقمي: صورة طولية بجانب الروابط على الحاسوب، وتحتها على الهاتف */
@@ -410,6 +433,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 }
 .copy:hover { background: var(--gold); color: var(--bg); }
 .status { color: var(--muted); font-size: 0.92rem; min-height: 1.9em; }
+/* رمز QR واتساب: للحاسوب فقط، لأن زائر الهاتف يضغط الزر مباشرة */
+.wa-qr { display: none; }
+@media (min-width: 52rem) {
+  .wa-qr { display: grid; justify-items: center; gap: 0.5rem; }
+  .wa-qr svg { width: 8.5rem; height: 8.5rem; border-radius: 10px; border: 1px solid var(--gold-soft); }
+  .wa-qr p { color: var(--muted); font-size: 0.88rem; }
+}
 
 /* التذييل */
 .foot { border-top: 1px solid var(--gold-soft); background: var(--bg-deep); }
@@ -470,9 +500,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* الشريط العلوي يصير سطرين تحت 680 بكسل تقريباً، فنزيد المسافة تحته */
 @media (max-width: 42.5rem) { html { scroll-padding-top: 7.5rem; } }
 /* أسطر «قريباً» عمودين حين يتسع المكان */
-/* عمودان على الشاشة المتوسطة وثلاثة على الحاسوب، حتى لا يبقى سطر وحيد في آخر القائمة القصيرة */
+/* عمودان، وثلاثة على الحاسوب إذا كانت الأسطر ثلاثة بالضبط، حتى لا يبقى سطر وحيد في آخر القائمة القصيرة */
 @media (min-width: 48rem) { .soon-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 64rem) { .soon-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .soon-list:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* الخطوات الأربع 2+2 على الحاسوب اللوحي، بدل 3 وخطوة وحيدة تحتها */
 @media (min-width: 40rem) and (max-width: 63.75rem) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 36rem) {
@@ -572,9 +602,20 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
              حتى يفتحها الزائر أول ما يصل إلى الأعمال. تختفي وحدها إذا لم يبقَ منيو له رابط.
              وبجانبها إعلان المنيو الرقمي (assets/menu-poster.webp)، يضمّنه build.py في الصفحة. -->
         <div class="quick reveal">
-          <div class="quick-links">
-            <h3 class="quick-title" id="quick-title">روابط المنيوهات</h3>
-            <ul class="quick-list" aria-labelledby="quick-title"><!--LINKS--></ul>
+          <div class="quick-side">
+            <div class="quick-links">
+              <h3 class="quick-title" id="quick-title">روابط المنيوهات</h3>
+              <ul class="quick-list" aria-labelledby="quick-title"><!--LINKS--></ul>
+            </div>
+            <!-- كيف يعمل المنيو الرقمي: ثلاث خطوات تصف ما في النماذج فعلاً، بلا وعود جديدة -->
+            <div class="how">
+              <h3 class="quick-title" id="how-title">كيف يعمل المنيو الرقمي؟</h3>
+              <ol class="how-list" aria-labelledby="how-title">
+                <li><span class="how-n" aria-hidden="true">١</span><div><h4>يمسح الزبون الرمز</h4><p>رمز <span class="ltr" lang="en">QR</span> على الطاولة يفتح المنيو في هاتفه.</p></div></li>
+                <li><span class="how-n" aria-hidden="true">٢</span><div><h4>بلا تطبيق ولا تسجيل</h4><p>يُفتح في متصفح الهاتف مباشرة، على أي هاتف.</p></div></li>
+                <li><span class="how-n" aria-hidden="true">٣</span><div><h4>يتصفّح الأقسام</h4><p>الأصناف مرتّبة بأقسامها، بألوان مطعمك وشعاره.</p></div></li>
+              </ol>
+            </div>
           </div>
           <figure class="poster">
             <img src="assets/menu-poster.webp" alt="إعلان واجهة: منيو رقمي لمطعمك، الزبون يطلب من موبايله بـ QR. يد تمسك هاتفاً عليه منيو مطعم، ورقم واتساب 0774 780 0611" width="800" height="995" decoding="async">
@@ -721,6 +762,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
             <span class="number ltr" id="wa-number">+964 774 780 0611</span>
             <button class="copy" type="button" id="copy-number">انسخ الرقم</button>
           </div>
+          <!-- يظهر على الحاسوب فقط: يمسحه الزائر بهاتفه فتُفتح المحادثة. يصنعه build.py من WA_NUMBER -->
+          <div class="wa-qr">
+            <!--WAQR-->
+            <p>أو امسح الرمز بكاميرا هاتفك لتفتح المحادثة.</p>
+          </div>
+          <!-- مشاركة رابط الموقع: قائمة المشاركة في الهاتف، أو نسخ الرابط في الحاسوب. يظهر بالسكربت فقط -->
+          <button class="copy share" type="button" id="share-site" hidden>شارك الموقع</button>
           <p class="status" id="copy-status" role="status" aria-live="polite"></p>
         </div>
       </div>
@@ -743,7 +791,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 </div>
 
 <script>
-/* وظائف السكربت: نسخ الرقم، خط التقدم وظل الشريط العلوي، إظهار زر واتساب الثابت وإخفاؤه، تصفية الأعمال، ظهور الأقسام بهدوء، وتمييز القسم الحالي في شريط التنقل. لا تتبّع ولا جمع بيانات. */
+/* وظائف السكربت: نسخ الرقم، مشاركة الموقع، خط التقدم وظل الشريط العلوي، إظهار زر واتساب الثابت وإخفاؤه، تصفية الأعمال، ظهور الأقسام بهدوء، وتمييز القسم الحالي في شريط التنقل. لا تتبّع ولا جمع بيانات. */
 (function () {
   var button = document.getElementById('copy-number');
   var number = document.getElementById('wa-number');
@@ -765,6 +813,23 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
         navigator.clipboard.writeText(value).then(copied, selectInstead);
       } else {
         selectInstead();
+      }
+    });
+  }
+
+  /* مشاركة الموقع: قائمة المشاركة في الهاتف، وإلا نسخ الرابط */
+  var share = document.getElementById('share-site');
+  if (share && status) {
+    share.hidden = false;
+    share.addEventListener('click', function () {
+      var url = location.href.split('#')[0];
+      if (navigator.share) {
+        navigator.share({ title: document.title, url: url }).catch(function () {});
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { status.textContent = 'نُسخ رابط الموقع.'; },
+          function () { status.textContent = 'رابط الموقع: ' + url; });
+      } else {
+        status.textContent = 'رابط الموقع: ' + url;
       }
     });
   }
